@@ -1,0 +1,40 @@
+{
+  "name": "client-tutorial",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
+    "@nuxt/a11y": "^1.0.0-alpha.1",
+    "@nuxt/eslint": "^1.16.0",
+    "@nuxt/icon": "^2.3.1",
+    "@nuxt/image": "^2.0.0",
+    "@nuxt/test-utils": "^4.0.3",
+    "@nuxtjs/i18n": "^10.4.0",
+    "@nuxtjs/mdc": "^0.22.1",
+    "@tailwindcss/vite": "^4.3.2",
+    "eslint": "^10.6.0",
+    "nuxt": "^4.4.8",
+    "tailwindcss": "^4.3.2",
+
+    "unstorage": "^1.17.5",
+    "vue": "^3.5.39",
+    "vue-router": "^5.1.0"
+  },
+  "devDependencies": {
+      "typescript": "^6.0.3"        
+  },
+  "allowScripts": {
+    "unrs-resolver@1.12.2": true,
+    "@parcel/watcher@2.5.6": true,
+    "sharp@0.34.5": true,
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.1": true
+  }
+}
