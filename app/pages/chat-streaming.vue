@@ -8,7 +8,7 @@
           <strong class="message.role=='user'? 'text-right' : 'text-left'">{{ message.role }}:</strong> 
           <div v-if="message.role=='user'" >{{ message.content }}</div>        
           <div v-else >
-            <MDC :value="message.content" />
+            <MDC :value="message.content" :cache-key="`chat-streaming-message-${index}`" />
             
           </div>
         </div>
@@ -54,8 +54,7 @@ const scrollToBottom = () => {
   nextTick(() => {
     if (chatAreaElement.value) {
       
-      chatAreaElement.value.scrollTop = chatAreaElement.value.scrollHeight - chatAreaElement.value.clientHeight;
-      console.log(`Scrolling to bottom of chat area ${chatAreaElement.value.scrollTop} = ${chatAreaElement.value.scrollHeight} - ${chatAreaElement.value.clientHeight}`);
+      chatAreaElement.value.scrollTop = chatAreaElement.value.scrollHeight - chatAreaElement.value.clientHeight;  
     }
   })
 }
@@ -63,18 +62,17 @@ const scrollToBottom = () => {
 const sendMessage = async () => {
   if (!userInput.value.trim()) return
 
-  addMessage({ role: 'user', content: userInput.value });  
-
-  currentAssistantMessage.value = { role: 'assistant', content: '' };  
+  addMessage({ role: 'user', content: userInput.value });    
   messages.value.push(currentAssistantMessage.value);
 
   const url = '/api/agent-stream';
   // const url = '/api/stream-test'; // Use the test endpoint for streaming
 
   for await (const chunk of streamingFetch(url, userInput.value)) {
-
-    currentAssistantMessage.value.content += chunk;
+    currentAssistantMessage.value.content += chunk;    
   };
+  currentAssistantMessage.value = { role: 'assistant', content: '' };  
+  
   userInput.value = '';
 }
 
