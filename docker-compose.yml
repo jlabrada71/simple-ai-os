@@ -1,4 +1,14 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5433:5432"
+
   dev:
     build:
       context: .
@@ -7,6 +17,8 @@ services:
       - "3000:3000"
     env_file:
       - .env
+    depends_on:
+      - postgres
     volumes:
       - .:/app
       - /app/node_modules
@@ -20,5 +32,10 @@ services:
       - "3000:3000"
     env_file:
       - .env
+    depends_on:
+      - postgres
     volumes:
       - ./data:/app/data
+
+volumes:
+  pgdata:
