@@ -5,7 +5,12 @@ vi.mock('../db/client', () => {
   const returning = vi.fn()
   const values = vi.fn(() => ({ returning }))
   const insert = vi.fn(() => ({ values }))
-  return { db: { insert } }
+
+  const deleteReturning = vi.fn()
+  const deleteWhere = vi.fn(() => ({ returning: deleteReturning }))
+  const del = vi.fn(() => ({ where: deleteWhere }))
+
+  return { db: { insert, delete: del } }
 })
 
 describe('createPromptSchema', () => {
@@ -110,5 +115,40 @@ describe('isUniqueViolation', () => {
   it('returns false for unrelated errors', async () => {
     const { isUniqueViolation } = await import('./prompts')
     expect(isUniqueViolation(new Error('boom'))).toBe(false)
+  })
+})
+
+describe('deletePrompt', () => {
+  it('deletes the row and returns it', async () => {
+    const { db } = await import('../db/client')
+    const { deletePrompt } = await import('./prompts')
+
+    const fakeRow = {
+      id: '11111111-1111-1111-1111-111111111111',
+      name: 'greeting',
+      content: 'Hello!',
+      description: null,
+      tags: [],
+      variables: [],
+      version: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+    ;(db.delete as any)().where().returning.mockResolvedValue([fakeRow])
+
+    const result = await deletePrompt(fakeRow.id)
+
+    expect(result).toEqual(fakeRow)
+  })
+
+  it('returns null when nothing was deleted', async () => {
+    const { db } = await import('../db/client')
+    const { deletePrompt } = await import('./prompts')
+
+    ;(db.delete as any)().where().returning.mockResolvedValue([])
+
+    const result = await deletePrompt('00000000-0000-0000-0000-000000000000')
+
+    expect(result).toBeNull()
   })
 })

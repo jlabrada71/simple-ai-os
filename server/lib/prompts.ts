@@ -97,3 +97,8 @@ function pgErrorCode(err: unknown): string | undefined {
 export function isUniqueViolation(err: unknown): boolean {
   return pgErrorCode(err) === '23505'
 }
+
+export async function deletePrompt(id: string): Promise<Prompt | null> {
+  const [row] = await db.delete(prompts).where(eq(prompts.id, id)).returning()
+  return row ?? null
+}
