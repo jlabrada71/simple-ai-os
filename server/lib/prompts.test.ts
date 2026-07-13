@@ -95,3 +95,20 @@ describe('createPrompt', () => {
     await expect(createPrompt({ name: '', content: 'Hello!' })).rejects.toThrow()
   })
 })
+
+describe('isUniqueViolation', () => {
+  it('detects a raw pg error with code 23505', async () => {
+    const { isUniqueViolation } = await import('./prompts')
+    expect(isUniqueViolation({ code: '23505' })).toBe(true)
+  })
+
+  it('detects a Drizzle-wrapped pg error (code nested under .cause)', async () => {
+    const { isUniqueViolation } = await import('./prompts')
+    expect(isUniqueViolation({ message: 'Failed query', cause: { code: '23505' } })).toBe(true)
+  })
+
+  it('returns false for unrelated errors', async () => {
+    const { isUniqueViolation } = await import('./prompts')
+    expect(isUniqueViolation(new Error('boom'))).toBe(false)
+  })
+})

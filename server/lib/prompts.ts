@@ -87,6 +87,13 @@ export async function updatePrompt(id: string, rawInput: unknown): Promise<Promp
   return row ?? null
 }
 
+function pgErrorCode(err: unknown): string | undefined {
+  if (typeof err !== 'object' || err === null) return undefined
+  const code = (err as { code?: string }).code
+  if (code) return code
+  return pgErrorCode((err as { cause?: unknown }).cause)
+}
+
 export function isUniqueViolation(err: unknown): boolean {
-  return typeof err === 'object' && err !== null && (err as { code?: string }).code === '23505'
+  return pgErrorCode(err) === '23505'
 }
