@@ -6,6 +6,7 @@
         <NuxtLink to="/chat-streaming" class="p-2 rounded bg-blue-300">Chat Streaming</NuxtLink>
         <NuxtLink to="/stream-test" class="p-2 rounded bg-green-300">Stream Test</NuxtLink>
         <NuxtLink to="/chat" class="p-2 rounded bg-purple-300">Chat</NuxtLink>
+        <NuxtLink to="/prompts" class="p-2 rounded bg-yellow-300">Prompts</NuxtLink>
     </div>
   </div>
 
