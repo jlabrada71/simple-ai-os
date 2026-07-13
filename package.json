@@ -7,7 +7,8 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
@@ -19,16 +20,20 @@
     "@nuxtjs/i18n": "^10.4.0",
     "@nuxtjs/mdc": "^0.22.1",
     "@tailwindcss/vite": "^4.3.2",
+    "drizzle-orm": "^0.45.2",
     "eslint": "^10.6.0",
     "nuxt": "^4.4.8",
+    "pg": "^8.22.0",
     "tailwindcss": "^4.3.2",
-
     "unstorage": "^1.17.5",
     "vue": "^3.5.39",
-    "vue-router": "^5.1.0"
+    "vue-router": "^5.1.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-      "typescript": "^6.0.3"        
+    "@types/pg": "^8.20.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   },
   "allowScripts": {
     "unrs-resolver@1.12.2": true,
