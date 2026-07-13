@@ -40,8 +40,11 @@ export default defineNuxtConfig({
       // Mount a filesystem driver to /data/db
       session: {
         driver: 'fs',
-        base: './data/sessions' 
+        base: './data/sessions'
       }
+    },
+    routeRules: {
+      '/mcp': { cors: true }
     }
   },
   i18n: {
