@@ -201,3 +201,9 @@ curl -X POST http://localhost:3000/mcp \
   -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
   -d '{"jsonrpc":"2.0","id":2,"method":"prompts/get","params":{"name":"greeting","arguments":{"name":"Ada"}}}'
 ```
+
+
+## Test MCP server
+```bash
+npx @modelcontextprotocol/inspector
+```
