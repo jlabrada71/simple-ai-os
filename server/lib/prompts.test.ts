@@ -1,5 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createPromptSchema, listPromptsQuerySchema, updatePromptSchema } from './prompts'
+
+vi.mock('../db/client', () => {
+  const returning = vi.fn()
+  const values = vi.fn(() => ({ returning }))
+  const insert = vi.fn(() => ({ values }))
+  return { db: { insert } }
+})
 
 describe('createPromptSchema', () => {
   it('accepts a minimal valid input', () => {
@@ -57,5 +64,34 @@ describe('listPromptsQuerySchema', () => {
   it('passes through an optional tag filter', () => {
     const result = listPromptsQuerySchema.parse({ tag: 'math' })
     expect(result).toEqual({ limit: 20, offset: 0, tag: 'math' })
+  })
+})
+
+describe('createPrompt', () => {
+  it('inserts the validated input and returns the created row', async () => {
+    const { db } = await import('../db/client')
+    const { createPrompt } = await import('./prompts')
+
+    const fakeRow = {
+      id: '11111111-1111-1111-1111-111111111111',
+      name: 'greeting',
+      content: 'Hello!',
+      description: null,
+      tags: [],
+      variables: [],
+      version: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+    ;(db.insert as any)().values().returning.mockResolvedValue([fakeRow])
+
+    const result = await createPrompt({ name: 'greeting', content: 'Hello!' })
+
+    expect(result).toEqual(fakeRow)
+  })
+
+  it('rejects invalid input before touching the database', async () => {
+    const { createPrompt } = await import('./prompts')
+    await expect(createPrompt({ name: '', content: 'Hello!' })).rejects.toThrow()
   })
 })

@@ -1,4 +1,7 @@
+import { desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
+import { db } from '../db/client'
+import { prompts, type Prompt } from '../db/schema'
 
 export const createPromptSchema = z.object({
   name: z.string().trim().min(1, 'name is required'),
@@ -31,3 +34,59 @@ export const listPromptsQuerySchema = z.object({
 })
 
 export type ListPromptsQuery = z.infer<typeof listPromptsQuerySchema>
+
+export async function listPrompts(
+  rawQuery: unknown,
+): Promise<{ prompts: Prompt[]; limit: number; offset: number }> {
+  const { limit, offset, tag } = listPromptsQuerySchema.parse(rawQuery)
+
+  const rows = tag
+    ? await db
+        .select()
+        .from(prompts)
+        .where(sql`${prompts.tags} @> ARRAY[${tag}]::text[]`)
+        .orderBy(desc(prompts.createdAt))
+        .limit(limit)
+        .offset(offset)
+    : await db.select().from(prompts).orderBy(desc(prompts.createdAt)).limit(limit).offset(offset)
+
+  return { prompts: rows, limit, offset }
+}
+
+export async function createPrompt(rawInput: unknown): Promise<Prompt> {
+  const input = createPromptSchema.parse(rawInput)
+
+  const [row] = await db
+    .insert(prompts)
+    .values({
+      name: input.name,
+      content: input.content,
+      description: input.description,
+      tags: input.tags ?? [],
+      variables: input.variables ?? [],
+    })
+    .returning()
+
+  return row
+}
+
+export async function getPrompt(id: string): Promise<Prompt | null> {
+  const [row] = await db.select().from(prompts).where(eq(prompts.id, id))
+  return row ?? null
+}
+
+export async function updatePrompt(id: string, rawInput: unknown): Promise<Prompt | null> {
+  const input = updatePromptSchema.parse(rawInput)
+
+  const [row] = await db
+    .update(prompts)
+    .set({ ...input, version: sql`${prompts.version} + 1`, updatedAt: sql`now()` })
+    .where(eq(prompts.id, id))
+    .returning()
+
+  return row ?? null
+}
+
+export function isUniqueViolation(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && (err as { code?: string }).code === '23505'
+}
