@@ -14,17 +14,32 @@
         </div>
         <div class="h-16"></div>
       </div>
-      <form @submit.prevent="sendMessage" class="flex gap-2">
-        <textarea v-model="userInput" 
-          placeholder="Type your message..." 
-          rows="3"
-          class="bg-white w-full border rounded-lg resize-none p-2"
-        ></textarea>
-        <button 
-          type="submit" 
-          class="bg-blue-300 hover:bg-blue-400 text-white font-bold py-2 px-4 rounded">
-          Send
-        </button>
+      <form @submit.prevent="sendMessage" class="flex flex-col gap-2">
+        <select v-model="mode" @change="onModeChange" class="bg-white border rounded-lg p-2">
+          <option value="text">Free text</option>
+          <option v-for="prompt in availablePrompts" :key="prompt.name" :value="prompt.name">
+            {{ prompt.name }}
+          </option>
+        </select>
+        <div class="flex gap-2">
+          <textarea v-if="mode === 'text'" v-model="userInput"
+            placeholder="Type your message..."
+            rows="3"
+            class="bg-white w-full border rounded-lg resize-none p-2"
+          ></textarea>
+          <div v-else class="flex flex-col gap-2 w-full">
+            <div v-for="arg in (selectedPrompt?.arguments || [])" :key="arg.name" class="flex flex-col">
+              <label class="text-sm font-bold">{{ arg.name }}</label>
+              <input v-model="promptParams[arg.name]" type="text"
+                class="bg-white border rounded-lg p-2" />
+            </div>
+          </div>
+          <button
+            type="submit"
+            class="bg-blue-300 hover:bg-blue-400 text-white font-bold py-2 px-4 rounded">
+            Send
+          </button>
+        </div>
       </form>
       <button @click="newThread" class="bg-green-300 hover:bg-green-400 text-white font-bold py-2 px-4 rounded mt-4">
         New Thread
