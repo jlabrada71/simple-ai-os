@@ -95,21 +95,40 @@ const scrollToBottom = () => {
   })
 }
 
-const sendMessage = async () => {
-  if (!userInput.value.trim()) return
+const buildPromptBubbleContent = (name, parameters) => {
+  const entries = Object.entries(parameters);
+  if (entries.length === 0) return `Prompt: ${name}`;
+  const paramsText = entries.map(([key, value]) => `${key}: ${value}`).join(', ');
+  return `Prompt: ${name} (${paramsText})`;
+}
 
-  addMessage({ role: 'user', content: userInput.value });    
+const sendMessage = async () => {
+  let request;
+  let bubbleContent;
+
+  if (mode.value === 'text') {
+    if (!userInput.value.trim()) return
+    request = { type: 'text', text: userInput.value };
+    bubbleContent = userInput.value;
+  } else {
+    request = { type: 'prompt', name: mode.value, parameters: { ...promptParams.value } };
+    bubbleContent = buildPromptBubbleContent(mode.value, promptParams.value);
+  }
+
+  addMessage({ role: 'user', content: bubbleContent });
   messages.value.push(currentAssistantMessage.value);
 
   const url = '/api/agent-stream';
   // const url = '/api/stream-test'; // Use the test endpoint for streaming
 
-  for await (const chunk of streamingFetch(url, { type: 'text', text: userInput.value })) {
-    currentAssistantMessage.value.content += chunk;    
+  for await (const chunk of streamingFetch(url, request)) {
+    currentAssistantMessage.value.content += chunk;
   };
-  currentAssistantMessage.value = { role: 'assistant', content: '' };  
-  
+  currentAssistantMessage.value = { role: 'assistant', content: '' };
+
   userInput.value = '';
+  mode.value = 'text';
+  promptParams.value = {};
 }
 
 const newThread = async() => {
