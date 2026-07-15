@@ -41,6 +41,67 @@
           <button type="button" @click="remove" class="btn btn-danger">Delete</button>
           <NuxtLink to="/prompts" class="btn btn-secondary">Cancel</NuxtLink>
         </div>
+        <section>
+        <p>Tips on how to create a good prompt</p>
+          <ul>
+            <li>
+              <h2>* Be clear</h2>
+               <ul>
+                <li>- Use simple language</li>
+                <li>- state what you want</li>
+                <li>- lead your prompt with a simple statement of the task</li>
+               </ul>
+               <p>Instead of: "I need to know about those things people put on their roofs"</p>
+               <p>Use: "Write three paragraphs about how solar panels work."</p>
+            </li>
+            <li>
+               <h2>* Be direct</h2>
+               <ul>
+                <li>- Use instructions, no questionse</li>
+                <li>- Use direct action verbs (Write, create, generate)</li>                
+               </ul>
+               <p>Instead of: "I was reading about renewable energy. What countries use it? "</p>
+               <p>Use: "Identify three countries that use renewable energy."</p>
+            </li>
+            <li><h2>* Be especific</h2>
+               <p>Provide a list of guidelines (qualities, this is preferred) or steps to direct the model</p>
+               <div><h2>Example 1</h2>
+                <p>Write a short story about a character</p>
+                <p>Guidelines:</p>
+               <ul>
+                <li>- Keep the story under 1000 words.</li>
+                <li>- Include a clear action that reveals the character</li>   
+                <li>- Include at least one supporting character</li>             
+               </ul>
+               <p>Instead of: "I was reading about renewable energy. What countries use it? "</p>
+               <p>Use: "Identify three countries that use renewable energy."</p>
+               </div>
+               <div><h2>Example 2</h2>
+                <p>Write a short story about a character</p>
+                <p>Follow these steps:</p>
+               <ul>
+                <li>1- Brainstorm 3 talents that create dramatic tension</li>
+                <li>2- Pick the most interesting talent</li>   
+                <li>3- Outline a scene that reveals the talent.</li>             
+               </ul>               
+               </div>
+              </li>
+            <li>
+              <h2>* Structure with XML tags</h2>
+               <p>This separate distinct portions of the prompt.</p>
+               <p>It's important for including a lot of content for example</p>
+               <div><h2>Example 1</h2>
+               <ul>
+                <li> <my_data>{ { sales_record } }</my_data></li>
+                <li>- <my_code>{ { code } }</my_code> <code_docs>{ { docs } }</code_docs></li>                            
+               </ul>
+               
+               </div>
+            </li>
+            <li><h2>* Provide examples</h2></li>
+          </ul>
+
+        </section>
       </form>
     </template>
   </div>
