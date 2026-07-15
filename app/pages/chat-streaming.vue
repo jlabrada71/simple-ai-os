@@ -68,7 +68,7 @@ const sendMessage = async () => {
   const url = '/api/agent-stream';
   // const url = '/api/stream-test'; // Use the test endpoint for streaming
 
-  for await (const chunk of streamingFetch(url, userInput.value)) {
+  for await (const chunk of streamingFetch(url, { type: 'text', text: userInput.value })) {
     currentAssistantMessage.value.content += chunk;    
   };
   currentAssistantMessage.value = { role: 'assistant', content: '' };  

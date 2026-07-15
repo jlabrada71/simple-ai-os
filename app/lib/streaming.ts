@@ -1,11 +1,12 @@
+import type { ChatRequest } from '../../shared/types/chat'
 
-export async function* streamingFetch(url: string, message: string): AsyncGenerator<string>{
+export async function* streamingFetch(url: string, request: ChatRequest): AsyncGenerator<string>{
   try {
     // 1. Explicitly request 'stream' as the response type
     const response = await $fetch<ReadableStream>(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify(request),
       responseType: 'stream'
     })
 
