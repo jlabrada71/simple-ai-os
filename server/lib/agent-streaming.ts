@@ -39,6 +39,9 @@ async function resolvePromptText(name: string, parameters?: Record<string, strin
 
     const result = await client.getPrompt({ name, arguments: parameters });
     const [firstMessage] = result.messages;
+    if (!firstMessage) {
+        throw new Error(`Prompt "${name}" returned no messages`);
+    }
     const text = (firstMessage.content as { type: "text"; text: string }).text;
 
     await client.close();
