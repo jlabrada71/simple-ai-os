@@ -21,7 +21,9 @@ test.describe('prompts pages', () => {
 
     await row.getByRole('link', { name: 'Edit' }).click()
     await expect(page).toHaveURL(/\/prompts\/.+/)
-    await page.waitForLoadState('networkidle')
+    // The edit page fetches the prompt asynchronously and overwrites the form fields
+    // once it resolves, so wait for that fetch to land before typing into the form.
+    await expect(page.getByLabel('Name')).toHaveValue(promptName)
     await page.getByLabel('Description').fill('Updated description')
     await page.getByRole('button', { name: 'Save' }).click()
     await expect(page).toHaveURL(/\/prompts$/)
