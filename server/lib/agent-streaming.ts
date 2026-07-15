@@ -1,5 +1,9 @@
 import { Anthropic } from "@anthropic-ai/sdk";
 import { ContentBlock } from "@anthropic-ai/sdk/resources";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { createMcpServer } from "../mcp/server";
+import { type ChatRequest } from "../../shared/types/chat";
 
 const systemPrompt = `You are a patient math tutor.
    Do not directly answer the student's questions. 
@@ -9,6 +13,8 @@ const systemPrompt = `You are a patient math tutor.
 const client = new Anthropic({
   apiKey: process.env["ANTHROPIC_API_KEY"] // This is the default and can be omitted
 });
+
+
 
 type Message = { 
         role: "user" | "assistant" | "system"; 
@@ -23,8 +29,26 @@ function addAssistantMessage(messages: Message[], content: string| ContentBlock[
     messages.push({ role: "assistant", content });
 }
 
-export function chat(sessionId: string, userMessage: string): ReadableStream<string> {
-    
+async function resolvePromptText(name: string, parameters?: Record<string, string>): Promise<string> {
+    const server = await createMcpServer();
+    const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "agent-streaming", version: "1.0.0" });
+
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    const result = await client.getPrompt({ name, arguments: parameters });
+    const [firstMessage] = result.messages;
+    const text = (firstMessage.content as { type: "text"; text: string }).text;
+
+    await client.close();
+    await server.close();
+
+    return text;
+}
+
+export function chat(sessionId: string, request: ChatRequest): ReadableStream<string> {
+
     const stream = new ReadableStream({
         async start(controller) {
             const encoder = new TextEncoder();
@@ -34,16 +58,20 @@ export function chat(sessionId: string, userMessage: string): ReadableStream<str
 
             const sessionData = await storage.getItem(sessionId) as { messages: Message[]; claudeResponse: Anthropic.Message[] } || { messages: [] as Message[], claudeResponse: [] as Anthropic.Message[] };
             const { messages, claudeResponse = [] } = sessionData;
-            // Set data 
-            
-            addUserMessage(messages, userMessage);
+            // Set data
+
+            const userMessageText = request.type === "text"
+                ? request.text
+                : await resolvePromptText(request.name, request.parameters);
+
+            addUserMessage(messages, userMessageText);
 
             const claudeStream = await client.messages.create({
                 max_tokens: 1024,
                 messages: messages,
                 model: "claude-sonnet-5",
                 system: systemPrompt,
-                stream: true
+                stream: true,
             });
             for await (const messageStreamEvent of claudeStream) {
                 console.log(`=============================================`);
