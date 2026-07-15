@@ -36,9 +36,11 @@
             </td>
             <td>{{ prompt.version }}</td>
             <td>{{ new Date(prompt.updatedAt).toLocaleString() }}</td>
-            <td class="actions-cell">
-              <NuxtLink :to="`/prompts/${prompt.id}`" class="link-edit">Edit</NuxtLink>
-              <button type="button" @click="removePrompt(prompt)" class="link-delete">Delete</button>
+            <td>
+              <div class="actions-cell">
+                <NuxtLink :to="`/prompts/${prompt.id}`" class="link-edit">Edit</NuxtLink>
+                <button type="button" @click="removePrompt(prompt)" class="link-delete">Delete</button>
+              </div>
             </td>
           </tr>
           <tr v-if="prompts.length === 0">
@@ -236,6 +238,7 @@ fetchPrompts()
 
 .actions-cell {
   display: flex;
+  align-items: center;
   gap: var(--space-sm);
 }
 
