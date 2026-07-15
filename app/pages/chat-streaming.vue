@@ -35,14 +35,35 @@
 </template>
 
 <script setup language="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { streamingFetch } from '../lib/streaming';
+import { listMcpPrompts } from '../lib/mcp-client';
 
 const userInput = ref('');
 const messages = ref([]);
 const chatAreaElement = useTemplateRef('chat-area');
 
 const currentAssistantMessage = ref({ role: 'assistant', content: '' });
+
+const mode = ref('text');
+const availablePrompts = ref([]);
+const promptParams = ref({});
+
+const selectedPrompt = computed(() =>
+  availablePrompts.value.find((prompt) => prompt.name === mode.value) || null
+);
+
+onMounted(async () => {
+  try {
+    availablePrompts.value = await listMcpPrompts();
+  } catch (error) {
+    console.error('Failed to load prompts:', error);
+  }
+});
+
+const onModeChange = () => {
+  promptParams.value = {};
+};
 
 const addMessage = (message) => {
   messages.value.push(message);
