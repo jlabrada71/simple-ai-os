@@ -11,6 +11,8 @@ export default defineNuxtConfig({
     ],
     optimizeDeps: {
       include: [
+        '@modelcontextprotocol/sdk/client/index.js',
+        '@modelcontextprotocol/sdk/client/streamableHttp.js',
         '@vue/devtools-core',
         '@vue/devtools-kit',
       ]
