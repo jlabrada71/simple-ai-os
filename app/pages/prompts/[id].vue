@@ -1,55 +1,45 @@
 <template>
-  <div class="max-w-2xl mx-auto p-4">
-    <h1 class="text-2xl font-bold py-4">Edit Prompt</h1>
+  <div class="form-page">
+    <h1 class="page-title">Edit Prompt</h1>
 
-    <p v-if="notFound" class="text-red-600">
-      Prompt not found. <NuxtLink to="/prompts" class="underline">Back to prompts</NuxtLink>
+    <p v-if="notFound" class="error-text">
+      Prompt not found. <NuxtLink to="/prompts" class="link-inline">Back to prompts</NuxtLink>
     </p>
 
     <template v-else>
-      <p v-if="errorMessage" class="text-red-600 mb-4">{{ errorMessage }}</p>
-      <p class="text-gray-500 mb-2">Version {{ version }}</p>
+      <p v-if="errorMessage" class="error-text">{{ errorMessage }}</p>
+      <p class="version-text">Version {{ version }}</p>
 
-      <form @submit.prevent="submit" class="flex flex-col gap-4 bg-white rounded-lg shadow-md p-4">
-        <label class="flex flex-col gap-1">
-          <span class="font-bold">Name</span>
-          <input v-model="name" type="text" required class="border rounded p-2" />
+      <form @submit.prevent="submit" class="form-card">
+        <label class="field-label">
+          <span>Name</span>
+          <input v-model="name" type="text" required class="field-input" />
         </label>
 
-        <label class="flex flex-col gap-1">
-          <span class="font-bold">Content</span>
-          <textarea v-model="content" required rows="6" class="border rounded p-2"></textarea>
+        <label class="field-label">
+          <span>Content</span>
+          <textarea v-model="content" required rows="6" class="field-input field-textarea"></textarea>
         </label>
 
-        <label class="flex flex-col gap-1">
-          <span class="font-bold">Description</span>
-          <input v-model="description" type="text" class="border rounded p-2" />
+        <label class="field-label">
+          <span>Description</span>
+          <input v-model="description" type="text" class="field-input" />
         </label>
 
-        <label class="flex flex-col gap-1">
-          <span class="font-bold">Tags (comma-separated)</span>
-          <input v-model="tags" type="text" class="border rounded p-2" />
+        <label class="field-label">
+          <span>Tags (comma-separated)</span>
+          <input v-model="tags" type="text" class="field-input" />
         </label>
 
-        <label class="flex flex-col gap-1">
-          <span class="font-bold">Variables (comma-separated)</span>
-          <input v-model="variables" type="text" class="border rounded p-2" />
+        <label class="field-label">
+          <span>Variables (comma-separated)</span>
+          <input v-model="variables" type="text" class="field-input" />
         </label>
 
-        <div class="flex gap-2">
-          <button type="submit" class="bg-blue-300 hover:bg-blue-400 text-white font-bold py-2 px-4 rounded">
-            Save
-          </button>
-          <button
-            type="button"
-            @click="remove"
-            class="bg-red-300 hover:bg-red-400 text-white font-bold py-2 px-4 rounded"
-          >
-            Delete
-          </button>
-          <NuxtLink to="/prompts" class="bg-gray-200 hover:bg-gray-300 font-bold py-2 px-4 rounded">
-            Cancel
-          </NuxtLink>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="button" @click="remove" class="btn btn-danger">Delete</button>
+          <NuxtLink to="/prompts" class="btn btn-secondary">Cancel</NuxtLink>
         </div>
       </form>
     </template>
@@ -58,6 +48,8 @@
 
 <script setup>
 import { ref } from 'vue'
+
+definePageMeta({ layout: 'app' })
 
 const route = useRoute()
 const id = route.params.id
@@ -124,3 +116,114 @@ const remove = async () => {
 
 load()
 </script>
+
+<style scoped>
+.form-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-md) var(--space-sm);
+}
+@media (min-width: 768px) {
+  .form-page {
+    padding: var(--space-lg) var(--space-margin-desktop);
+  }
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: var(--space-sm);
+}
+
+.version-text {
+  color: var(--color-on-surface-variant);
+  margin-bottom: var(--space-sm);
+}
+
+.error-text {
+  color: var(--color-error);
+  margin-bottom: var(--space-sm);
+}
+
+.link-inline {
+  color: var(--color-primary-container);
+  text-decoration: underline;
+}
+
+.form-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-outline-variant);
+  background-color: var(--color-surface-lowest);
+}
+
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-on-background);
+}
+
+.field-input {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-outline-variant);
+  background-color: var(--color-surface-container-low);
+  font-family: var(--font-body);
+  font-weight: 400;
+}
+.field-input:focus {
+  outline: none;
+  border-color: var(--color-primary-container);
+  background-color: var(--color-surface-lowest);
+}
+
+.field-textarea {
+  resize: vertical;
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 8px var(--space-md);
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+}
+.btn-primary {
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary);
+}
+.btn-primary:hover {
+  background-color: var(--color-primary);
+}
+.btn-secondary {
+  background-color: var(--color-surface-lowest);
+  color: var(--color-on-background);
+  border: 1px solid var(--color-outline-variant);
+}
+.btn-secondary:hover {
+  border-color: var(--color-primary-container);
+}
+.btn-danger {
+  background-color: var(--color-error);
+  color: #ffffff;
+}
+.btn-danger:hover {
+  opacity: 0.9;
+}
+</style>
