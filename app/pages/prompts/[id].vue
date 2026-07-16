@@ -55,7 +55,6 @@
 
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">Save</button>
-          <button type="button" @click="remove" class="btn btn-danger">Delete</button>
           <NuxtLink to="/prompts" class="btn btn-secondary">Cancel</NuxtLink>
         </div>
         <section>
@@ -202,17 +201,6 @@ const improve = async () => {
   }
 }
 
-const remove = async () => {
-  if (!confirm(`Delete prompt "${name.value}"? This cannot be undone.`)) return
-  errorMessage.value = ''
-  try {
-    await $fetch(`/api/prompts/${id}`, { method: 'DELETE' })
-    await navigateTo('/prompts')
-  } catch (err) {
-    errorMessage.value = err.data?.statusMessage || err.data?.message || 'Failed to delete prompt'
-  }
-}
-
 load()
 </script>
 
@@ -344,12 +332,5 @@ load()
 }
 .btn-secondary:hover {
   border-color: var(--color-primary-container);
-}
-.btn-danger {
-  background-color: var(--color-error);
-  color: #ffffff;
-}
-.btn-danger:hover {
-  opacity: 0.9;
 }
 </style>
