@@ -16,10 +16,27 @@
           <input v-model="name" type="text" required class="field-input" />
         </label>
 
-        <label class="field-label">
-          <span>Content</span>
-          <textarea v-model="content" required rows="6" class="field-input field-textarea"></textarea>
-        </label>
+        <div class="field-label">
+          <div class="field-label-row">
+            <label for="prompt-content">Content</label>
+            <button
+              type="button"
+              class="btn-improve"
+              :disabled="isImproving || !content.trim()"
+              @click="improve"
+            >
+              <Icon name="material-symbols:auto-fix-high" />
+              {{ isImproving ? 'Improving…' : 'Improve' }}
+            </button>
+          </div>
+          <textarea
+            id="prompt-content"
+            v-model="content"
+            required
+            rows="6"
+            class="field-input field-textarea"
+          ></textarea>
+        </div>
 
         <label class="field-label">
           <span>Description</span>
@@ -123,6 +140,7 @@ const variables = ref('')
 const version = ref(1)
 const errorMessage = ref('')
 const notFound = ref(false)
+const isImproving = ref(false)
 
 const splitList = (value) =>
   value.split(',').map((item) => item.trim()).filter((item) => item.length > 0)
@@ -161,6 +179,26 @@ const submit = async () => {
     await navigateTo('/prompts')
   } catch (err) {
     errorMessage.value = err.data?.statusMessage || err.data?.message || 'Failed to save prompt'
+  }
+}
+
+const improve = async () => {
+  errorMessage.value = ''
+  isImproving.value = true
+  try {
+    const body = {
+      name: name.value,
+      content: content.value,
+      description: description.value.trim() || undefined,
+      tags: splitList(tags.value),
+      variables: splitList(variables.value),
+    }
+    const improved = await $fetch('/api/prompts/improve', { method: 'POST', body })
+    content.value = improved.content
+  } catch (err) {
+    errorMessage.value = err.data?.statusMessage || err.data?.message || 'Failed to improve prompt'
+  } finally {
+    isImproving.value = false
   }
 }
 
@@ -246,6 +284,33 @@ load()
 
 .field-textarea {
   resize: vertical;
+}
+
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-improve {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px var(--space-xs);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-outline-variant);
+  background-color: var(--color-surface-lowest);
+  color: var(--color-primary-container);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-improve:hover:not(:disabled) {
+  border-color: var(--color-primary-container);
+}
+.btn-improve:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .form-actions {
