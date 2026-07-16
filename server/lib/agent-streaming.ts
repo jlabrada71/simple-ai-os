@@ -4,20 +4,9 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createMcpServer } from "../mcp/server";
 import { type ChatRequest } from "../../shared/types/chat";
+import { agents, getAgent } from './agents';
 
-const systemPrompt = {
-   mathTutor: `You are a patient math tutor.
-      Do not directly answer the student's questions. 
-      Guide the student to a solution step by step.
-               `,
-   orchestrator: `You are a helpful assistant that can orchestrate multiple agents to solve a problem.
-       You can call other agents to solve a problem, and you can also call yourself recursively.
-       You can also call the math tutor agent to help the user with math problems.
-       You can also call the code agent to help the user with coding problems.
-       You can also call the text agent to help the user with text problems.`
-}
-
-const systemAgent = 'orchestrator';
+const systemAgent = getAgent(agents, 'orchestrator');
 
 const client = new Anthropic({
   apiKey: process.env["ANTHROPIC_API_KEY"] // This is the default and can be omitted
@@ -81,7 +70,7 @@ export function chat(sessionId: string, request: ChatRequest): ReadableStream<st
                 max_tokens: 1024,
                 messages: messages,
                 model: "claude-sonnet-5",
-                system: systemPrompt[systemAgent],
+                system: systemAgent.systemPrompt,
                 stream: true,
             });
             for await (const messageStreamEvent of claudeStream) {

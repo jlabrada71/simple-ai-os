@@ -1,10 +1,8 @@
 import { Anthropic } from "@anthropic-ai/sdk";
 import { ContentBlock } from "@anthropic-ai/sdk/resources";
+import { agents, getAgent } from './agents';
 
-const systemPrompt = `You are a patient math tutor.
-   Do not directly answer the student's questions. 
-   Guide the student to a solution step by step.
-`;
+const systemAgent = getAgent(agents, 'orchestrator');
 
 const client = new Anthropic({
   apiKey: process.env["ANTHROPIC_API_KEY"] // This is the default and can be omitted
@@ -36,7 +34,7 @@ export async function chat(sessionId: string, userMessage: string): Promise<stri
         max_tokens: 1024,
         messages: messages,
         model: "claude-sonnet-5",
-        system: systemPrompt
+        system: systemAgent.systemPrompt
     });
     const { content } = responseMessage;
     claudeResponse.push(responseMessage);
