@@ -109,8 +109,8 @@
                <p>It's important for including a lot of content for example</p>
                <div><h2>Example 1</h2>
                <ul>
-                <li> <my_data>{ { sales_record } }</my_data></li>
-                <li>- <my_code>{ { code } }</my_code> <code_docs>{ { docs } }</code_docs></li>                            
+                <li>&lt;my_data&gt;{ { sales_record } }&lt;/my_data&gt;</li>
+                <li>- &lt;my_code&gt;{ { code } }&lt;/my_code&gt; &lt;code_docs&gt;{ { docs } }&lt;/code_docs&gt;</li>
                </ul>
                
                </div>
