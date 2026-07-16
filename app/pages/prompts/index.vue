@@ -38,8 +38,17 @@
             <td>{{ new Date(prompt.updatedAt).toLocaleString() }}</td>
             <td>
               <div class="actions-cell">
-                <NuxtLink :to="`/prompts/${prompt.id}`" class="link-edit">Edit</NuxtLink>
-                <button type="button" @click="removePrompt(prompt)" class="link-delete">Delete</button>
+                <NuxtLink :to="`/prompts/${prompt.id}`" class="icon-btn icon-btn-edit" aria-label="Edit">
+                  <Icon name="material-symbols:edit-outline" />
+                </NuxtLink>
+                <button
+                  type="button"
+                  @click="removePrompt(prompt)"
+                  class="icon-btn icon-btn-delete"
+                  aria-label="Delete"
+                >
+                  <Icon name="material-symbols:delete-outline" />
+                </button>
               </div>
             </td>
           </tr>
@@ -242,25 +251,30 @@ fetchPrompts()
   gap: var(--space-sm);
 }
 
-.link-edit {
-  color: var(--color-primary-container);
-  font-weight: 600;
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-lg);
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 18px;
   text-decoration: none;
 }
-.link-edit:hover {
-  text-decoration: underline;
+.icon-btn-edit {
+  color: var(--color-primary-container);
 }
-
-.link-delete {
+.icon-btn-edit:hover {
+  background-color: var(--color-secondary-fixed);
+}
+.icon-btn-delete {
   color: var(--color-error);
-  font-weight: 600;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
 }
-.link-delete:hover {
-  text-decoration: underline;
+.icon-btn-delete:hover {
+  background-color: #ffdad6;
 }
 
 .empty-cell {
