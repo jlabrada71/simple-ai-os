@@ -4,6 +4,20 @@ Summary of work done, most recent first.
 
 ## 2026-07-16 (pending, not yet committed)
 
+- **Disable Save until the form actually changes**: the Edit Prompt form's Save button is
+  now disabled until at least one field (`name`, `content`, `description`, `tags`,
+  `variables`) differs from the last-loaded/last-saved values, via a snapshot taken on load
+  and compared with a computed. Prevents accidental no-op saves.
+- **Vite dependency pre-bundling for `@donedeal0/superdiff`**: added it to
+  `nuxt.config.ts`'s `vite.optimizeDeps.include`, alongside the existing MCP SDK entries.
+  Without it, Vite discovered the dependency at request time and triggered a full page
+  reload mid-request, which was intermittently breaking Playwright specs that navigate to
+  the Edit Prompt page (the page a client had already loaded would reload out from under
+  it). Same class of issue the existing MCP SDK entries in that list were already there to
+  prevent.
+
+## 2026-07-16
+
 - **Prompt version history**: new `prompt_history` table (`server/db/schema.ts`,
   `docker/init.sql`) that snapshots a prompt's full state on every change. `updatePrompt`
   now records the pre-update row (`action: "updated"`) before applying an edit;
@@ -28,9 +42,6 @@ Summary of work done, most recent first.
   anonymous volume that didn't survive the container being recreated) — fixed by rebuilding
   with `docker compose up -d --build -V postgres dev`. Recorded the library/baseline/scope
   decisions as `docs/ADR/0002-prompt-version-comparison-ui.md`.
-
-## 2026-07-16
-
 - **Remove Delete button from the Edit Prompt form** — deleting a prompt is still
   available from the prompts list; the edit form no longer has its own delete action.
 - **Fix Vue "Failed to resolve component" warnings** on the Edit Prompt page — the "tips"
