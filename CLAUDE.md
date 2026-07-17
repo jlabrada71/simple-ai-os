@@ -63,3 +63,7 @@ change the persona, update both `server/lib/agent.ts` and `server/lib/agent-stre
 strategy; locale files live in `i18n/locales/`. Not currently wired into the chat pages themselves.
 
 **Styling**: Tailwind CSS v4 via the Vite plugin (`@tailwindcss/vite`), global styles in `app/assets/css/main.css`.
+
+ ## Remember to: 
+ - update the docs/changes.md file with a summary of the changes done
+ - Create an Architecture Decision Record in the docs/ADR directory for each decision made regarding Architecture, Tech Stack or Design%  
