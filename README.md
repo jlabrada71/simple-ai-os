@@ -117,8 +117,9 @@ clashing with any other Postgres already using 5432 on your machine).
 A CRUD REST API for managing reusable prompt templates, backed by the `prompts` table in the
 `simple-ai-os` Postgres database (see `docker/init.sql` for the schema). A prompt has a unique
 `name`, `content` (the template text, which may contain `{{variable}}` placeholders),
-an optional `description`, `tags` and `variables` (string arrays), and a server-managed
-`version` that increments on every update.
+an optional `description`, `tags` and `variables` (string arrays), a server-managed
+`version` that increments on every update, and a `score` (integer, defaults to `0`) reserved for
+recording how well that prompt version performs when evaluated.
 
 There's also a UI for managing prompts at `/prompts` (list/create/edit/delete) once the app is
 running.
@@ -152,7 +153,8 @@ Returns a single prompt by id, or `404` if it doesn't exist.
 
 Updates a prompt. Body: any subset of `{ name, content, description, tags, variables }` (at
 least one field required). Increments `version` and refreshes `updated_at`. `404` if not
-found, `409` if renaming to an existing `name`.
+found, `409` if renaming to an existing `name`. The pre-update row is snapshotted into
+`prompt_history` (see below) before the change is applied.
 
 ```bash
 curl -X PUT http://localhost:3000/api/prompts/<id> \
@@ -162,10 +164,28 @@ curl -X PUT http://localhost:3000/api/prompts/<id> \
 
 ### `DELETE /api/prompts/:id`
 
-Deletes a prompt and returns the deleted row, or `404` if it doesn't exist.
+Deletes a prompt and returns the deleted row, or `404` if it doesn't exist. The full row
+(at the version it was at) is snapshotted into `prompt_history` first, so the prompt's
+version trail — including its final state — survives the deletion.
 
 ```bash
 curl -X DELETE http://localhost:3000/api/prompts/<id>
+```
+
+### `GET /api/prompts/:id/history`
+
+Returns `{ history: [...] }`, the prompt's past versions (oldest first), backed by the
+`prompt_history` table (see `docker/init.sql`). Each entry is a full snapshot of the prompt
+at that point — `name`, `content`, `description`, `tags`, `variables`, `version`, `score` —
+plus `action` (`"updated"` for a version that was superseded by an edit, `"deleted"` for the
+final version right before the prompt itself was deleted) and `archivedAt` (when the
+snapshot was taken). This endpoint works even after the prompt has been deleted, since
+`prompt_history` has no foreign key back to `prompts` and is queried independently — it's
+also how you can tell a prompt was deleted at all, since it stops appearing in
+`GET /api/prompts` but its history remains.
+
+```bash
+curl http://localhost:3000/api/prompts/<id>/history
 ```
 
 ## Prompts MCP Server

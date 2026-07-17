@@ -1,6 +1,26 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createPromptSchema, listPromptsQuerySchema, updatePromptSchema } from './prompts'
 
+function createFakeTx() {
+  const selectWhere = vi.fn()
+  const selectFrom = vi.fn(() => ({ where: selectWhere }))
+  const select = vi.fn(() => ({ from: selectFrom }))
+
+  const updateReturning = vi.fn()
+  const updateWhere = vi.fn(() => ({ returning: updateReturning }))
+  const updateSet = vi.fn(() => ({ where: updateWhere }))
+  const update = vi.fn(() => ({ set: updateSet }))
+
+  const deleteReturning = vi.fn()
+  const deleteWhere = vi.fn(() => ({ returning: deleteReturning }))
+  const del = vi.fn(() => ({ where: deleteWhere }))
+
+  const insertValues = vi.fn().mockResolvedValue(undefined)
+  const insert = vi.fn(() => ({ values: insertValues }))
+
+  return { select, selectWhere, update, updateReturning, delete: del, deleteReturning, insert, insertValues }
+}
+
 vi.mock('../db/client', () => {
   const returning = vi.fn()
   const values = vi.fn(() => ({ returning }))
@@ -10,7 +30,14 @@ vi.mock('../db/client', () => {
   const deleteWhere = vi.fn(() => ({ returning: deleteReturning }))
   const del = vi.fn(() => ({ where: deleteWhere }))
 
-  return { db: { insert, delete: del } }
+  const selectOrderBy = vi.fn()
+  const selectWhere = vi.fn(() => ({ orderBy: selectOrderBy }))
+  const selectFrom = vi.fn(() => ({ where: selectWhere }))
+  const select = vi.fn(() => ({ from: selectFrom }))
+
+  const transaction = vi.fn()
+
+  return { db: { insert, delete: del, select, transaction } }
 })
 
 describe('createPromptSchema', () => {
@@ -85,6 +112,7 @@ describe('createPrompt', () => {
       tags: [],
       variables: [],
       version: 1,
+      score: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     }
@@ -118,37 +146,109 @@ describe('isUniqueViolation', () => {
   })
 })
 
-describe('deletePrompt', () => {
-  it('deletes the row and returns it', async () => {
+const fakeCurrentRow = {
+  id: '11111111-1111-1111-1111-111111111111',
+  name: 'greeting',
+  content: 'Hello!',
+  description: null,
+  tags: [],
+  variables: [],
+  version: 1,
+  score: 0,
+  createdAt: new Date('2026-01-01T00:00:00Z'),
+  updatedAt: new Date('2026-01-01T00:00:00Z'),
+}
+
+describe('updatePrompt', () => {
+  it('snapshots the pre-update row into prompt_history with action "updated", then applies the update', async () => {
     const { db } = await import('../db/client')
-    const { deletePrompt } = await import('./prompts')
+    const { updatePrompt } = await import('./prompts')
 
-    const fakeRow = {
-      id: '11111111-1111-1111-1111-111111111111',
-      name: 'greeting',
-      content: 'Hello!',
-      description: null,
-      tags: [],
-      variables: [],
-      version: 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
-    ;(db.delete as any)().where().returning.mockResolvedValue([fakeRow])
+    const tx = createFakeTx()
+    ;(db.transaction as any).mockImplementation(async (cb: any) => cb(tx))
+    tx.selectWhere.mockResolvedValue([fakeCurrentRow])
+    const updatedRow = { ...fakeCurrentRow, content: 'Updated!', version: 2 }
+    tx.updateReturning.mockResolvedValue([updatedRow])
 
-    const result = await deletePrompt(fakeRow.id)
+    const result = await updatePrompt(fakeCurrentRow.id, { content: 'Updated!' })
 
-    expect(result).toEqual(fakeRow)
+    expect(result).toEqual(updatedRow)
+    expect(tx.insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        promptId: fakeCurrentRow.id,
+        content: 'Hello!',
+        version: 1,
+        action: 'updated',
+      }),
+    )
   })
 
-  it('returns null when nothing was deleted', async () => {
+  it('returns null and records no history when the prompt does not exist', async () => {
+    const { db } = await import('../db/client')
+    const { updatePrompt } = await import('./prompts')
+
+    const tx = createFakeTx()
+    ;(db.transaction as any).mockImplementation(async (cb: any) => cb(tx))
+    tx.selectWhere.mockResolvedValue([])
+
+    const result = await updatePrompt('00000000-0000-0000-0000-000000000000', { content: 'Updated!' })
+
+    expect(result).toBeNull()
+    expect(tx.insert).not.toHaveBeenCalled()
+    expect(tx.update).not.toHaveBeenCalled()
+  })
+})
+
+describe('deletePrompt', () => {
+  it('deletes the row, snapshots it into prompt_history with action "deleted", and returns it', async () => {
     const { db } = await import('../db/client')
     const { deletePrompt } = await import('./prompts')
 
-    ;(db.delete as any)().where().returning.mockResolvedValue([])
+    const tx = createFakeTx()
+    ;(db.transaction as any).mockImplementation(async (cb: any) => cb(tx))
+    tx.deleteReturning.mockResolvedValue([fakeCurrentRow])
+
+    const result = await deletePrompt(fakeCurrentRow.id)
+
+    expect(result).toEqual(fakeCurrentRow)
+    expect(tx.insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        promptId: fakeCurrentRow.id,
+        content: 'Hello!',
+        version: 1,
+        action: 'deleted',
+      }),
+    )
+  })
+
+  it('returns null and records no history when nothing was deleted', async () => {
+    const { db } = await import('../db/client')
+    const { deletePrompt } = await import('./prompts')
+
+    const tx = createFakeTx()
+    ;(db.transaction as any).mockImplementation(async (cb: any) => cb(tx))
+    tx.deleteReturning.mockResolvedValue([])
 
     const result = await deletePrompt('00000000-0000-0000-0000-000000000000')
 
     expect(result).toBeNull()
+    expect(tx.insert).not.toHaveBeenCalled()
+  })
+})
+
+describe('listPromptHistory', () => {
+  it("returns the prompt's history entries ordered oldest to newest", async () => {
+    const { db } = await import('../db/client')
+    const { listPromptHistory } = await import('./prompts')
+
+    const entries = [
+      { ...fakeCurrentRow, version: 1, action: 'updated' },
+      { ...fakeCurrentRow, version: 2, action: 'deleted' },
+    ]
+    ;(db.select as any)().from().where().orderBy.mockResolvedValue(entries)
+
+    const result = await listPromptHistory(fakeCurrentRow.id)
+
+    expect(result).toEqual(entries)
   })
 })

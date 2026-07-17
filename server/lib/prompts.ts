@@ -1,7 +1,7 @@
-import { desc, eq, sql } from 'drizzle-orm'
+import { asc, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../db/client'
-import { prompts, type Prompt } from '../db/schema'
+import { promptHistory, prompts, type Prompt, type PromptHistoryEntry } from '../db/schema'
 
 export const createPromptSchema = z.object({
   name: z.string().trim().min(1, 'name is required'),
@@ -75,16 +75,39 @@ export async function getPrompt(id: string): Promise<Prompt | null> {
   return row ?? null
 }
 
+function historySnapshot(current: Prompt, action: 'updated' | 'deleted') {
+  return {
+    promptId: current.id,
+    name: current.name,
+    content: current.content,
+    description: current.description,
+    tags: current.tags,
+    variables: current.variables,
+    version: current.version,
+    score: current.score,
+    action,
+    promptCreatedAt: current.createdAt,
+    promptUpdatedAt: current.updatedAt,
+  }
+}
+
 export async function updatePrompt(id: string, rawInput: unknown): Promise<Prompt | null> {
   const input = updatePromptSchema.parse(rawInput)
 
-  const [row] = await db
-    .update(prompts)
-    .set({ ...input, version: sql`${prompts.version} + 1`, updatedAt: sql`now()` })
-    .where(eq(prompts.id, id))
-    .returning()
+  return db.transaction(async (tx) => {
+    const [current] = await tx.select().from(prompts).where(eq(prompts.id, id))
+    if (!current) return null
 
-  return row ?? null
+    await tx.insert(promptHistory).values(historySnapshot(current, 'updated'))
+
+    const [row] = await tx
+      .update(prompts)
+      .set({ ...input, version: sql`${prompts.version} + 1`, updatedAt: sql`now()` })
+      .where(eq(prompts.id, id))
+      .returning()
+
+    return row ?? null
+  })
 }
 
 function pgErrorCode(err: unknown): string | undefined {
@@ -99,6 +122,20 @@ export function isUniqueViolation(err: unknown): boolean {
 }
 
 export async function deletePrompt(id: string): Promise<Prompt | null> {
-  const [row] = await db.delete(prompts).where(eq(prompts.id, id)).returning()
-  return row ?? null
+  return db.transaction(async (tx) => {
+    const [row] = await tx.delete(prompts).where(eq(prompts.id, id)).returning()
+    if (!row) return null
+
+    await tx.insert(promptHistory).values(historySnapshot(row, 'deleted'))
+
+    return row
+  })
+}
+
+export async function listPromptHistory(promptId: string): Promise<PromptHistoryEntry[]> {
+  return db
+    .select()
+    .from(promptHistory)
+    .where(eq(promptHistory.promptId, promptId))
+    .orderBy(asc(promptHistory.version))
 }
