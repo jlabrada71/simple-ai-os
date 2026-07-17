@@ -1,5 +1,5 @@
 <template>
-  <div class="form-page">
+  <div class="form-page" :class="{ 'form-page-wide': showCompare }">
     <h1 class="page-title">Edit Prompt</h1>
 
     <p v-if="notFound" class="error-text">
@@ -10,6 +10,12 @@
       <p v-if="errorMessage" class="error-text">{{ errorMessage }}</p>
       <p class="version-text">Version {{ version }}</p>
 
+      <label class="compare-toggle">
+        <input type="checkbox" v-model="showCompare" />
+        Compare with a previous version
+      </label>
+
+      <div class="edit-layout" :class="{ 'edit-layout-compare': showCompare }">
       <form @submit.prevent="submit" class="form-card">
         <label class="field-label">
           <span>Name</span>
@@ -57,7 +63,80 @@
           <button type="submit" class="btn btn-primary">Save</button>
           <NuxtLink to="/prompts" class="btn btn-secondary">Cancel</NuxtLink>
         </div>
-        <section>
+      </form>
+
+      <div v-if="showCompare" class="compare-card">
+        <label class="field-label">
+          <span>Compare version</span>
+          <select v-model="selectedHistoryId" class="field-input">
+            <option value="" disabled>Select a version…</option>
+            <option v-for="entry in historyEntries" :key="entry.id" :value="entry.id">
+              Version {{ entry.version }} — {{ entry.action }} — {{ formatDate(entry.archivedAt) }}
+            </option>
+          </select>
+        </label>
+
+        <p v-if="historyError" class="error-text">{{ historyError }}</p>
+        <p v-else-if="!historyEntries.length && historyLoaded" class="version-text">
+          No previous versions yet.
+        </p>
+
+        <template v-if="selectedEntry">
+          <label class="field-label">
+            <span>Content</span>
+            <textarea readonly rows="6" class="field-input field-textarea" :value="selectedEntry.content"></textarea>
+          </label>
+
+          <label class="field-label">
+            <span>Description</span>
+            <input readonly type="text" class="field-input" :value="selectedEntry.description || ''" />
+          </label>
+
+          <label class="field-label">
+            <span>Variables</span>
+            <input readonly type="text" class="field-input" :value="selectedEntry.variables.join(', ')" />
+          </label>
+
+          <div class="diff-section">
+            <h3 class="diff-title">Content diff</h3>
+            <p class="diff-text">
+              <span
+                v-for="(token, index) in contentDiff"
+                :key="index"
+                class="diff-token"
+                :class="`diff-token-${token.status}`"
+                >{{ token.value + ' ' }}</span
+              >
+            </p>
+
+            <h3 class="diff-title">Description diff</h3>
+            <p class="diff-text">
+              <span
+                v-for="(token, index) in descriptionDiff"
+                :key="index"
+                class="diff-token"
+                :class="`diff-token-${token.status}`"
+                >{{ token.value + ' ' }}</span
+              >
+            </p>
+
+            <h3 class="diff-title">Variables diff</h3>
+            <p class="diff-text">
+              <span
+                v-for="(item, index) in variablesDiff"
+                :key="index"
+                class="diff-chip"
+                :class="`diff-token-${item.status}`"
+                >{{ item.value }}</span
+              >
+              <span v-if="!variablesDiff.length" class="version-text">No variables.</span>
+            </p>
+          </div>
+        </template>
+      </div>
+      </div>
+
+      <section class="tips-section">
         <p>Tips on how to create a good prompt</p>
           <ul>
             <li>
@@ -118,13 +197,13 @@
           </ul>
 
         </section>
-      </form>
     </template>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { getListDiff, getTextDiff } from '@donedeal0/superdiff'
 
 definePageMeta({ layout: 'app' })
 
@@ -140,6 +219,52 @@ const version = ref(1)
 const errorMessage = ref('')
 const notFound = ref(false)
 const isImproving = ref(false)
+
+const showCompare = ref(false)
+const historyEntries = ref([])
+const historyLoaded = ref(false)
+const historyError = ref('')
+const selectedHistoryId = ref('')
+
+const selectedEntry = computed(
+  () => historyEntries.value.find((entry) => entry.id === selectedHistoryId.value) || null,
+)
+
+const contentDiff = computed(() =>
+  selectedEntry.value
+    ? getTextDiff(selectedEntry.value.content, content.value, { separation: 'word' }).diff
+    : [],
+)
+
+const descriptionDiff = computed(() =>
+  selectedEntry.value
+    ? getTextDiff(selectedEntry.value.description || '', description.value, { separation: 'word' }).diff
+    : [],
+)
+
+const variablesDiff = computed(() =>
+  selectedEntry.value
+    ? getListDiff(selectedEntry.value.variables, splitList(variables.value)).diff
+    : [],
+)
+
+const formatDate = (value) => new Date(value).toLocaleString()
+
+const loadHistory = async () => {
+  if (historyLoaded.value) return
+  historyError.value = ''
+  try {
+    const { history } = await $fetch(`/api/prompts/${id}/history`)
+    historyEntries.value = history
+    historyLoaded.value = true
+  } catch (err) {
+    historyError.value = err.data?.statusMessage || err.data?.message || 'Failed to load history'
+  }
+}
+
+watch(showCompare, (enabled) => {
+  if (enabled) loadHistory()
+})
 
 const splitList = (value) =>
   value.split(',').map((item) => item.trim()).filter((item) => item.length > 0)
@@ -214,6 +339,9 @@ load()
   .form-page {
     padding: var(--space-lg) var(--space-margin-desktop);
   }
+}
+.form-page-wide {
+  max-width: 1100px;
 }
 
 .page-title {
@@ -332,5 +460,92 @@ load()
 }
 .btn-secondary:hover {
   border-color: var(--color-primary-container);
+}
+
+.compare-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.edit-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+}
+.edit-layout-compare {
+  grid-template-columns: 1fr;
+}
+@media (min-width: 900px) {
+  .edit-layout-compare {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.compare-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-outline-variant);
+  background-color: var(--color-surface-container-low);
+}
+
+.diff-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  border-top: 1px solid var(--color-outline-variant);
+  padding-top: var(--space-sm);
+}
+
+.diff-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+}
+
+.diff-text {
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.diff-token-equal {
+  color: var(--color-on-background);
+}
+.diff-token-added {
+  background-color: #d4f4dd;
+  color: #1a6b31;
+  border-radius: 3px;
+}
+.diff-token-deleted {
+  background-color: #ffdad6;
+  color: #93000a;
+  text-decoration: line-through;
+  border-radius: 3px;
+}
+.diff-token-updated,
+.diff-token-moved {
+  background-color: #fff3cd;
+  color: #7a5b00;
+  border-radius: 3px;
+}
+
+.diff-chip {
+  display: inline-block;
+  padding: 2px var(--space-xs);
+  margin: 2px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  background-color: var(--color-surface-lowest);
+  border: 1px solid var(--color-outline-variant);
 }
 </style>
