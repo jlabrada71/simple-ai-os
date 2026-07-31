@@ -2,6 +2,17 @@
 
 Summary of work done, most recent first.
 
+## 2026-07-31 (pending, not yet committed)
+
+- **Streaming agent client points at a configurable base URL**: `server/lib/agent-streaming.ts`
+  now passes `baseURL: process.env['AGENT_BASE_URL']` to its `Anthropic` client, so the
+  streaming chat endpoint (`POST /api/agent-stream`) can be redirected to a local,
+  Anthropic-API-shaped service (set to `http://localhost:5050` in `.env`) instead of the
+  real Anthropic API. Unset, it falls back to the SDK's default (the real API), so this is
+  additive. `AGENT_BASE_URL` was added to `.env.example`. The non-streaming client
+  (`server/lib/agent.ts`) is unchanged and still always hits the real API. Recorded as
+  `docs/ADR/0003-streaming-agent-configurable-base-url.md`.
+
 ## 2026-07-16 (pending, not yet committed)
 
 - **Disable Save until the form actually changes**: the Edit Prompt form's Save button is
