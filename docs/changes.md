@@ -2,6 +2,17 @@
 
 Summary of work done, most recent first.
 
+## 2026-08-17 (pending, not yet committed)
+
+- **Target architecture for multitenancy + IAM SSO**: added
+  `docs/architecture/07-target-architecture.md` describing the target ("to-be") state for
+  (1) schema-per-tenant multitenancy (mirroring `web/home`'s public `tenants` registry +
+  `tenant_<slug>` schemas, `getTenantDb` pool, `provision-tenant.ts` script) and (2) SSO
+  via the shared `lib/nuxt-iam-client` module against `web/iam`, plus a baseline→target
+  gap analysis and a five-work-package roadmap. Recorded the two key decisions as
+  `docs/architecture/ADR/0004-multitenancy-schema-per-tenant.md` and
+  `docs/architecture/ADR/0005-sso-via-nuxt-iam-client.md`.
+
 ## 2026-07-31 (pending, not yet committed)
 
 - **Streaming agent client points at a configurable base URL**: `server/lib/agent-streaming.ts`
