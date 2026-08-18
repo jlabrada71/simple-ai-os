@@ -9,7 +9,8 @@ import { agents, getAgent } from './agents';
 const systemAgent = getAgent(agents, 'orchestrator');
 
 const client = new Anthropic({
-  apiKey: process.env["ANTHROPIC_API_KEY"] // This is the default and can be omitted
+    baseURL: process.env['AGENT_BASE_URL'],
+    apiKey: process.env["ANTHROPIC_API_KEY"] // This is the default and can be omitted
 });
 
 
