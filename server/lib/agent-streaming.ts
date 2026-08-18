@@ -68,7 +68,7 @@ export function chat(sessionId: string, request: ChatRequest): ReadableStream<st
             addUserMessage(messages, userMessageText);
 
             const claudeStream = await client.messages.create({
-                max_tokens: 1024,
+                max_tokens: 10000,
                 messages: messages,
                 model: "claude-sonnet-5",
                 system: systemAgent.systemPrompt,

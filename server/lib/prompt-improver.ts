@@ -20,7 +20,7 @@ export type ImprovePromptInput = z.infer<typeof improvePromptRequestSchema>
 
 export async function improvePromptContent(content: string): Promise<string> {
   const responseMessage = await client.messages.create({
-    max_tokens: 1024,
+    max_tokens: 10000,
     model: 'claude-sonnet-5',
     system: systemAgent.systemPrompt,
     messages: [{ role: 'user', content }],
