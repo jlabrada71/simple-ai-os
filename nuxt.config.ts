@@ -1,4 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { fileURLToPath } from 'node:url'
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineNuxtConfig({
@@ -39,6 +40,10 @@ export default defineNuxtConfig({
   }
   ],  
   nitro: {
+    serverAssets: [
+      { baseName: 'migrationsPublic', dir: fileURLToPath(new URL('./server/db/migrations/public', import.meta.url)) },
+      { baseName: 'migrationsTenant', dir: fileURLToPath(new URL('./server/db/migrations/tenant', import.meta.url)) },
+    ],
     storage: {
       // Mount a filesystem driver to /data/db
       session: {
