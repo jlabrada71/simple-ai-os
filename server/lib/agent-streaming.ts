@@ -2,6 +2,7 @@ import { Anthropic } from "@anthropic-ai/sdk";
 import { ContentBlock } from "@anthropic-ai/sdk/resources";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import type { drizzle } from "drizzle-orm/node-postgres";
 import { createMcpServer } from "../mcp/server";
 import { type ChatRequest } from "../../shared/types/chat";
 import { agents, getAgent } from './agents';
@@ -14,9 +15,9 @@ const client = new Anthropic({
 });
 
 
-type Message = { 
-        role: "user" | "assistant" | "system"; 
-        content: string| ContentBlock[] 
+type Message = {
+        role: "user" | "assistant" | "system";
+        content: string| ContentBlock[]
     };
 
 function addUserMessage(messages: Message[], content: string) {
@@ -27,8 +28,8 @@ function addAssistantMessage(messages: Message[], content: string| ContentBlock[
     messages.push({ role: "assistant", content });
 }
 
-async function resolvePromptText(name: string, parameters?: Record<string, string>): Promise<string> {
-    const server = await createMcpServer();
+async function resolvePromptText(db: ReturnType<typeof drizzle>, name: string, parameters?: Record<string, string>): Promise<string> {
+    const server = await createMcpServer(db);
     const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
     const client = new Client({ name: "agent-streaming", version: "1.0.0" });
 
@@ -48,7 +49,7 @@ async function resolvePromptText(name: string, parameters?: Record<string, strin
     return text;
 }
 
-export function chat(sessionId: string, request: ChatRequest): ReadableStream<string> {
+export function chat(db: ReturnType<typeof drizzle>, sessionId: string, request: ChatRequest): ReadableStream<string> {
 
     const stream = new ReadableStream({
         async start(controller) {
@@ -63,7 +64,7 @@ export function chat(sessionId: string, request: ChatRequest): ReadableStream<st
 
             const userMessageText = request.type === "text"
                 ? request.text
-                : await resolvePromptText(request.name, request.parameters);
+                : await resolvePromptText(db, request.name, request.parameters);
 
             addUserMessage(messages, userMessageText);
 
@@ -75,14 +76,10 @@ export function chat(sessionId: string, request: ChatRequest): ReadableStream<st
                 stream: true,
             });
             for await (const messageStreamEvent of claudeStream) {
-                console.log(`=============================================`);
-                console.log(messageStreamEvent.type);
-                // console.log(JSON.stringify(messageStreamEvent, null, 2));
                 if(messageStreamEvent.type === "content_block_delta") {
                     if(messageStreamEvent.delta.type === "text_delta") {
                         const textChunk = messageStreamEvent.delta.text;
                         content += textChunk;
-                        console.log(`Received text chunk: ${textChunk}`);
                         const encodedChunk = encoder.encode(textChunk);
                         controller.enqueue(encodedChunk);
                     }
@@ -90,10 +87,10 @@ export function chat(sessionId: string, request: ChatRequest): ReadableStream<st
 
                 // push the text content to the stream if it's a text block
             }
-            // If you need to cancel a stream, you can break from the loop 
+            // If you need to cancel a stream, you can break from the loop
             // or call stream.controller.abort()
 
-            // collect the claude response to push to 
+            // collect the claude response to push to
             // claudeResponse.push(responseMessage);
 
             // collect the assistant message to push to messages
@@ -103,12 +100,9 @@ export function chat(sessionId: string, request: ChatRequest): ReadableStream<st
             sessionData.claudeResponse = claudeResponse;
             await storage.setItem(sessionId, sessionData);
 
-            console.log(`+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++`);
-        
             controller.close();
         }
     });
-    console.log('Returning the ReadableStream from chat function');
     return stream;
 
 }

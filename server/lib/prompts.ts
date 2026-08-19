@@ -1,7 +1,9 @@
 import { asc, desc, eq, sql } from 'drizzle-orm'
+import type { drizzle } from 'drizzle-orm/node-postgres'
 import { z } from 'zod'
-import { db } from '../db/client'
-import { promptHistory, prompts, type Prompt, type PromptHistoryEntry } from '../db/schema'
+import { promptHistory, prompts, type Prompt, type PromptHistoryEntry } from '../db/schema/tenant'
+
+type Db = ReturnType<typeof drizzle>
 
 export const createPromptSchema = z.object({
   name: z.string().trim().min(1, 'name is required'),
@@ -36,6 +38,7 @@ export const listPromptsQuerySchema = z.object({
 export type ListPromptsQuery = z.infer<typeof listPromptsQuerySchema>
 
 export async function listPrompts(
+  db: Db,
   rawQuery: unknown,
 ): Promise<{ prompts: Prompt[]; limit: number; offset: number }> {
   const { limit, offset, tag } = listPromptsQuerySchema.parse(rawQuery)
@@ -53,7 +56,7 @@ export async function listPrompts(
   return { prompts: rows, limit, offset }
 }
 
-export async function createPrompt(rawInput: unknown): Promise<Prompt> {
+export async function createPrompt(db: Db, rawInput: unknown): Promise<Prompt> {
   const input = createPromptSchema.parse(rawInput)
 
   const [row] = await db
@@ -70,7 +73,7 @@ export async function createPrompt(rawInput: unknown): Promise<Prompt> {
   return row
 }
 
-export async function getPrompt(id: string): Promise<Prompt | null> {
+export async function getPrompt(db: Db, id: string): Promise<Prompt | null> {
   const [row] = await db.select().from(prompts).where(eq(prompts.id, id))
   return row ?? null
 }
@@ -91,7 +94,7 @@ function historySnapshot(current: Prompt, action: 'updated' | 'deleted') {
   }
 }
 
-export async function updatePrompt(id: string, rawInput: unknown): Promise<Prompt | null> {
+export async function updatePrompt(db: Db, id: string, rawInput: unknown): Promise<Prompt | null> {
   const input = updatePromptSchema.parse(rawInput)
 
   return db.transaction(async (tx) => {
@@ -121,7 +124,7 @@ export function isUniqueViolation(err: unknown): boolean {
   return pgErrorCode(err) === '23505'
 }
 
-export async function deletePrompt(id: string): Promise<Prompt | null> {
+export async function deletePrompt(db: Db, id: string): Promise<Prompt | null> {
   return db.transaction(async (tx) => {
     const [row] = await tx.delete(prompts).where(eq(prompts.id, id)).returning()
     if (!row) return null
@@ -132,7 +135,7 @@ export async function deletePrompt(id: string): Promise<Prompt | null> {
   })
 }
 
-export async function listPromptHistory(promptId: string): Promise<PromptHistoryEntry[]> {
+export async function listPromptHistory(db: Db, promptId: string): Promise<PromptHistoryEntry[]> {
   return db
     .select()
     .from(promptHistory)

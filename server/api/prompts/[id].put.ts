@@ -1,11 +1,14 @@
 import { ZodError } from 'zod'
+import { withTenantDb } from '../../db/client'
+import { requireTenantSession } from '../../utils/requireTenantSession'
 import { isUniqueViolation, updatePrompt } from '../../lib/prompts'
 
 export default defineEventHandler(async (event) => {
+  const { tenant } = await requireTenantSession(event)
   const id = getRouterParam(event, 'id')!
   const body = await readBody(event)
   try {
-    const prompt = await updatePrompt(id, body)
+    const prompt = await withTenantDb(tenant.schemaName, (db) => updatePrompt(db, id, body))
     if (!prompt) {
       throw createError({ statusCode: 404, statusMessage: 'Prompt not found' })
     }

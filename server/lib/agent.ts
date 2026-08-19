@@ -1,5 +1,6 @@
 import { Anthropic } from "@anthropic-ai/sdk";
 import { ContentBlock } from "@anthropic-ai/sdk/resources";
+import type { drizzle } from "drizzle-orm/node-postgres";
 import { agents, getAgent } from './agents';
 
 const systemAgent = getAgent(agents, 'orchestrator');
@@ -8,9 +9,9 @@ const client = new Anthropic({
   apiKey: process.env["ANTHROPIC_API_KEY"] // This is the default and can be omitted
 });
 
-type Message = { 
-        role: "user" | "assistant" | "system"; 
-        content: string| ContentBlock[] 
+type Message = {
+        role: "user" | "assistant" | "system";
+        content: string| ContentBlock[]
     };
 
 function addUserMessage(messages: Message[], content: string) {
@@ -21,13 +22,13 @@ function addAssistantMessage(messages: Message[], content: string| ContentBlock[
     messages.push({ role: "assistant", content });
 }
 
-export async function chat(sessionId: string, userMessage: string): Promise<string> {
+export async function chat(_db: ReturnType<typeof drizzle>, sessionId: string, userMessage: string): Promise<string> {
     const storage = useStorage('session'); // targets the 'session' mount
 
     const sessionData = await storage.getItem(sessionId) as { messages: Message[]; claudeResponse: Anthropic.Message[] } || { messages: [] as Message[], claudeResponse: [] as Anthropic.Message[] };
     const { messages, claudeResponse = [] } = sessionData;
-    // Set data 
-    
+    // Set data
+
     addUserMessage(messages, userMessage);
 
     const responseMessage = await client.messages.create({
@@ -51,7 +52,7 @@ export async function chat(sessionId: string, userMessage: string): Promise<stri
             return block.text;
         }
         return '';
-    }).join('\n');   
+    }).join('\n');
     return response;
 
 }

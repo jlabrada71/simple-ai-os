@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createPromptSchema, listPromptsQuerySchema, updatePromptSchema } from './prompts'
 
 function createFakeTx() {
   const selectWhere = vi.fn()
@@ -21,7 +20,7 @@ function createFakeTx() {
   return { select, selectWhere, update, updateReturning, delete: del, deleteReturning, insert, insertValues }
 }
 
-vi.mock('../db/client', () => {
+function createFakeDb() {
   const returning = vi.fn()
   const values = vi.fn(() => ({ returning }))
   const insert = vi.fn(() => ({ values }))
@@ -37,71 +36,104 @@ vi.mock('../db/client', () => {
 
   const transaction = vi.fn()
 
-  return { db: { insert, delete: del, select, transaction } }
-})
+  return { insert, returning, delete: del, select, transaction } as any
+}
 
 describe('createPromptSchema', () => {
-  it('accepts a minimal valid input', () => {
+  it('accepts a minimal valid input', async () => {
+    const { createPromptSchema } = await import('./prompts')
     const result = createPromptSchema.parse({ name: 'greeting', content: 'Hello!' })
     expect(result).toEqual({ name: 'greeting', content: 'Hello!' })
   })
 
-  it('rejects an empty name', () => {
+  it('rejects an empty name', async () => {
+    const { createPromptSchema } = await import('./prompts')
     expect(() => createPromptSchema.parse({ name: '', content: 'Hello!' })).toThrow()
   })
 
-  it('rejects an empty content', () => {
+  it('rejects an empty content', async () => {
+    const { createPromptSchema } = await import('./prompts')
     expect(() => createPromptSchema.parse({ name: 'greeting', content: '' })).toThrow()
   })
 
-  it('rejects a missing name', () => {
+  it('rejects a missing name', async () => {
+    const { createPromptSchema } = await import('./prompts')
     expect(() => createPromptSchema.parse({ content: 'Hello!' })).toThrow()
   })
 })
 
 describe('updatePromptSchema', () => {
-  it('accepts a partial update with a single field', () => {
+  it('accepts a partial update with a single field', async () => {
+    const { updatePromptSchema } = await import('./prompts')
     const result = updatePromptSchema.parse({ content: 'Updated!' })
     expect(result).toEqual({ content: 'Updated!' })
   })
 
-  it('rejects an empty update body', () => {
+  it('rejects an empty update body', async () => {
+    const { updatePromptSchema } = await import('./prompts')
     expect(() => updatePromptSchema.parse({})).toThrow()
   })
 
-  it('rejects an empty-string field', () => {
+  it('rejects an empty-string field', async () => {
+    const { updatePromptSchema } = await import('./prompts')
     expect(() => updatePromptSchema.parse({ name: '' })).toThrow()
   })
 })
 
 describe('listPromptsQuerySchema', () => {
-  it('defaults limit to 20 and offset to 0 when omitted', () => {
+  it('defaults limit to 20 and offset to 0 when omitted', async () => {
+    const { listPromptsQuerySchema } = await import('./prompts')
     const result = listPromptsQuerySchema.parse({})
     expect(result).toEqual({ limit: 20, offset: 0 })
   })
 
-  it('coerces string query params to numbers', () => {
+  it('coerces string query params to numbers', async () => {
+    const { listPromptsQuerySchema } = await import('./prompts')
     const result = listPromptsQuerySchema.parse({ limit: '10', offset: '5' })
     expect(result).toEqual({ limit: 10, offset: 5 })
   })
 
-  it('rejects a limit above 100', () => {
+  it('rejects a limit above 100', async () => {
+    const { listPromptsQuerySchema } = await import('./prompts')
     expect(() => listPromptsQuerySchema.parse({ limit: '101' })).toThrow()
   })
 
-  it('rejects a negative offset', () => {
+  it('rejects a negative offset', async () => {
+    const { listPromptsQuerySchema } = await import('./prompts')
     expect(() => listPromptsQuerySchema.parse({ offset: '-1' })).toThrow()
   })
 
-  it('passes through an optional tag filter', () => {
+  it('passes through an optional tag filter', async () => {
+    const { listPromptsQuerySchema } = await import('./prompts')
     const result = listPromptsQuerySchema.parse({ tag: 'math' })
     expect(result).toEqual({ limit: 20, offset: 0, tag: 'math' })
   })
 })
 
+describe('listPrompts', () => {
+  it('queries against the db instance it is given, not a module-level import', async () => {
+    const rows = [{ id: '1', name: 'a', createdAt: new Date() }]
+    const db = {
+      select: () => ({
+        from: () => ({
+          orderBy: () => ({
+            limit: () => ({
+              offset: async () => rows,
+            }),
+          }),
+        }),
+      }),
+    } as any
+
+    const { listPrompts } = await import('./prompts')
+    const result = await listPrompts(db, {})
+    expect(result.prompts).toEqual(rows)
+  })
+})
+
 describe('createPrompt', () => {
   it('inserts the validated input and returns the created row', async () => {
-    const { db } = await import('../db/client')
+    const db = createFakeDb()
     const { createPrompt } = await import('./prompts')
 
     const fakeRow = {
@@ -116,16 +148,17 @@ describe('createPrompt', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     }
-    ;(db.insert as any)().values().returning.mockResolvedValue([fakeRow])
+    db.insert().values().returning.mockResolvedValue([fakeRow])
 
-    const result = await createPrompt({ name: 'greeting', content: 'Hello!' })
+    const result = await createPrompt(db, { name: 'greeting', content: 'Hello!' })
 
     expect(result).toEqual(fakeRow)
   })
 
   it('rejects invalid input before touching the database', async () => {
+    const db = createFakeDb()
     const { createPrompt } = await import('./prompts')
-    await expect(createPrompt({ name: '', content: 'Hello!' })).rejects.toThrow()
+    await expect(createPrompt(db, { name: '', content: 'Hello!' })).rejects.toThrow()
   })
 })
 
@@ -161,16 +194,16 @@ const fakeCurrentRow = {
 
 describe('updatePrompt', () => {
   it('snapshots the pre-update row into prompt_history with action "updated", then applies the update', async () => {
-    const { db } = await import('../db/client')
+    const db = createFakeDb()
     const { updatePrompt } = await import('./prompts')
 
     const tx = createFakeTx()
-    ;(db.transaction as any).mockImplementation(async (cb: any) => cb(tx))
+    db.transaction.mockImplementation(async (cb: any) => cb(tx))
     tx.selectWhere.mockResolvedValue([fakeCurrentRow])
     const updatedRow = { ...fakeCurrentRow, content: 'Updated!', version: 2 }
     tx.updateReturning.mockResolvedValue([updatedRow])
 
-    const result = await updatePrompt(fakeCurrentRow.id, { content: 'Updated!' })
+    const result = await updatePrompt(db, fakeCurrentRow.id, { content: 'Updated!' })
 
     expect(result).toEqual(updatedRow)
     expect(tx.insertValues).toHaveBeenCalledWith(
@@ -184,14 +217,14 @@ describe('updatePrompt', () => {
   })
 
   it('returns null and records no history when the prompt does not exist', async () => {
-    const { db } = await import('../db/client')
+    const db = createFakeDb()
     const { updatePrompt } = await import('./prompts')
 
     const tx = createFakeTx()
-    ;(db.transaction as any).mockImplementation(async (cb: any) => cb(tx))
+    db.transaction.mockImplementation(async (cb: any) => cb(tx))
     tx.selectWhere.mockResolvedValue([])
 
-    const result = await updatePrompt('00000000-0000-0000-0000-000000000000', { content: 'Updated!' })
+    const result = await updatePrompt(db, '00000000-0000-0000-0000-000000000000', { content: 'Updated!' })
 
     expect(result).toBeNull()
     expect(tx.insert).not.toHaveBeenCalled()
@@ -201,14 +234,14 @@ describe('updatePrompt', () => {
 
 describe('deletePrompt', () => {
   it('deletes the row, snapshots it into prompt_history with action "deleted", and returns it', async () => {
-    const { db } = await import('../db/client')
+    const db = createFakeDb()
     const { deletePrompt } = await import('./prompts')
 
     const tx = createFakeTx()
-    ;(db.transaction as any).mockImplementation(async (cb: any) => cb(tx))
+    db.transaction.mockImplementation(async (cb: any) => cb(tx))
     tx.deleteReturning.mockResolvedValue([fakeCurrentRow])
 
-    const result = await deletePrompt(fakeCurrentRow.id)
+    const result = await deletePrompt(db, fakeCurrentRow.id)
 
     expect(result).toEqual(fakeCurrentRow)
     expect(tx.insertValues).toHaveBeenCalledWith(
@@ -222,14 +255,14 @@ describe('deletePrompt', () => {
   })
 
   it('returns null and records no history when nothing was deleted', async () => {
-    const { db } = await import('../db/client')
+    const db = createFakeDb()
     const { deletePrompt } = await import('./prompts')
 
     const tx = createFakeTx()
-    ;(db.transaction as any).mockImplementation(async (cb: any) => cb(tx))
+    db.transaction.mockImplementation(async (cb: any) => cb(tx))
     tx.deleteReturning.mockResolvedValue([])
 
-    const result = await deletePrompt('00000000-0000-0000-0000-000000000000')
+    const result = await deletePrompt(db, '00000000-0000-0000-0000-000000000000')
 
     expect(result).toBeNull()
     expect(tx.insert).not.toHaveBeenCalled()
@@ -238,16 +271,16 @@ describe('deletePrompt', () => {
 
 describe('listPromptHistory', () => {
   it("returns the prompt's history entries ordered oldest to newest", async () => {
-    const { db } = await import('../db/client')
+    const db = createFakeDb()
     const { listPromptHistory } = await import('./prompts')
 
     const entries = [
       { ...fakeCurrentRow, version: 1, action: 'updated' },
       { ...fakeCurrentRow, version: 2, action: 'deleted' },
     ]
-    ;(db.select as any)().from().where().orderBy.mockResolvedValue(entries)
+    db.select().from().where().orderBy.mockResolvedValue(entries)
 
-    const result = await listPromptHistory(fakeCurrentRow.id)
+    const result = await listPromptHistory(db, fakeCurrentRow.id)
 
     expect(result).toEqual(entries)
   })
