@@ -10,6 +10,7 @@
     "postinstall": "nuxt prepare",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e-api": "vitest run --config vitest.e2e-api.config.ts",
     "db:generate:public": "drizzle-kit generate --config drizzle.config.public.ts",
     "db:generate:tenant": "drizzle-kit generate --config drizzle.config.tenant.ts",
     "db:migrate": "tsx server/db/scripts/migrate-public.ts",
