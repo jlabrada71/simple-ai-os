@@ -28,6 +28,16 @@ export default defineNuxtConfig({
     '@nuxt/test-utils',
     '@nuxtjs/i18n',
     '@nuxtjs/mdc',
+    ['nuxt-iam-client', {
+      instanceId: 'tenant',
+      dynamic: true,
+      routePrefix: '/api/auth/iam',
+      composableAlias: 'useTenantAuth',
+      authenticatedPath: '/authenticated',
+      afterLoginPath: '/chat',
+      notAuthenticatedPath: '/not-authenticated',
+      afterLogoutPath: '/',
+    }],
   ],
   mdc: {
     components: {
