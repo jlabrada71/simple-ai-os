@@ -40,6 +40,8 @@
 <script setup>
 import { ref } from 'vue'
 
+definePageMeta({ middleware: 'auth' })
+
 const userInput = ref('');
 const messages = ref([]);
 const chatAreaElement = useTemplateRef('chat-area');

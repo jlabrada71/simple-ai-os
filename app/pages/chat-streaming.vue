@@ -71,7 +71,7 @@ import { ref, computed, onMounted } from 'vue'
 import { streamingFetch } from '../lib/streaming';
 import { listMcpPrompts } from '../lib/mcp-client';
 
-definePageMeta({ layout: 'app' })
+definePageMeta({ layout: 'app', middleware: 'auth' })
 
 const userInput = ref('');
 const messages = ref([]);
