@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed (target architecture — `07-target-architecture.md`)
+Accepted — implemented per `docs/superpowers/plans/2026-08-19-multitenancy-sso.md`
 
 ## Context
 

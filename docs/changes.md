@@ -2,6 +2,42 @@
 
 Summary of work done, most recent first.
 
+## 2026-08-19
+
+- **Multitenancy + iam SSO (phase 1)**: implemented `docs/architecture/07-target-architecture.md`'s
+  WP-1 (tenant scaffolding) and WP-2 (SSO), per
+  `docs/superpowers/specs/2026-08-19-multitenancy-sso-design.md` and
+  `docs/superpowers/plans/2026-08-19-multitenancy-sso.md`. `ADR/0004` and `ADR/0005` are now
+  Accepted.
+  - **Schema-per-tenant Postgres**: new `public.tenants` registry
+    (`server/db/schema/public.ts`) and per-tenant `tenant_<slug>` schemas holding `prompts`,
+    `prompt_history` (moved out of the old shared schema), `users`, and `tenant_config`
+    (`server/db/schema/tenant.ts`). Tenant resolution is by `Host` subdomain
+    (`server/utils/tenant.ts`, `server/middleware/tenant.ts`), with a cached
+    per-schema Drizzle connection pool (`server/db/client.ts`'s `getTenantDb`/`withTenantDb`).
+  - **Migrations**: Drizzle Kit configs (`drizzle.config.public.ts`,
+    `drizzle.config.tenant.ts`) replace the old `docker/init.sql`; public-schema migrations
+    run lazily on first request (`server/plugins/migrate.ts`, matching `home`'s
+    "never `process.exit()` from a per-request hook" fix); `server/db/scripts/provision-tenant.ts`
+    creates a tenant's schema, runs its migrations, and registers its own `iam` app.
+  - **SSO**: `lib/nuxt-iam-client` mounted in `dynamic` mode (one mount, credentials resolved
+    per tenant via `server/utils/resolveTenantIam.ts`) — each tenant owns its own `iam`
+    `app_id`/`client_secret`, matching what `home` already does in production rather than the
+    single-shared-app model the target doc had speculated about. `server/utils/requireTenantSession.ts`
+    gates chat/prompts/MCP; the first successful login for a tenant auto-creates its `users`
+    row with `role: 'member'` (this app's provisioning script doesn't seed an owner the way
+    `home`'s does).
+  - **Removed**: the stub `server/lib/session.ts`, `GET /api/login`, and the
+    `assets:sessions` stub namespace. `GET /api/new-thread` was re-added (tenant-session-gated)
+    since the fs-backed chat history (`unstorage`'s `session` namespace) is still in place —
+    replacing it with DB-backed `threads`/`messages` is deferred (see `docs/backlog.md`).
+  - **Deferred to `docs/backlog.md`**: WP-3 (DB-backed threads/messages), WP-4
+    (retention/backup/persistent iam session store), WP-5 (bearer-authenticated tenant-scoped
+    MCP), and the phase-2 `home`→`simple-ai-os` cross-app auto-provisioning trigger.
+  - Also fixed a pre-existing bug in `docker-compose.yml`: the `postgres:18-alpine` volume was
+    mounted at `/var/lib/postgresql/data`, which that image version refuses to start against
+    (see `home`'s learnings doc) — moved to `/var/lib/postgresql`.
+
 ## 2026-08-17 (pending, not yet committed)
 
 - **Target architecture for multitenancy + IAM SSO**: added

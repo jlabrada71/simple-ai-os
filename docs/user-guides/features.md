@@ -1,0 +1,17 @@
+# Features
+
+- **Chat (non-streaming and streaming)**: two parallel implementations of a Claude-backed chat
+  UI — `POST /api/agent` (full response) and `POST /api/agent-stream` (token-by-token via a
+  `ReadableStream`). Both render assistant responses as markdown.
+- **Prompt library**: create, edit, delete, and version-compare reusable prompts, exposed to
+  the chat UI's prompt picker and over MCP.
+- **MCP server**: `/mcp` exposes the tenant's prompt library as MCP prompts for external MCP
+  clients.
+- **Multitenancy**: each customer ("tenant") gets an isolated Postgres schema
+  (`tenant_<slug>`) — prompts, prompt history, and users are all tenant-scoped. Tenants are
+  resolved by subdomain (`{slug}.simple-ai-os.tryyourideas.com`, or `{slug}.localhost:3000` in
+  dev).
+- **SSO login via iam**: authentication is delegated to the centralized `iam` service
+  (passwordless email-code login, authorization-code redirect flow). A user already logged
+  into another `iam`-backed app (e.g. `home`) is signed into simple-ai-os automatically, with
+  no extra login step, since `iam` reuses its existing browser session across apps.
