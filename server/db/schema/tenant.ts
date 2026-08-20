@@ -60,3 +60,37 @@ export const tenantConfig = pgTable('tenant_config', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
 })
+
+export const threads = pgTable('threads', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  title: text('title'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
+})
+
+export type Thread = typeof threads.$inferSelect
+export type NewThread = typeof threads.$inferInsert
+
+export const threadMessages = pgTable('messages', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  threadId: uuid('thread_id').notNull().references(() => threads.id),
+  role: text('role').notNull().$type<'user' | 'assistant'>(),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+})
+
+export type ThreadMessage = typeof threadMessages.$inferSelect
+export type NewThreadMessage = typeof threadMessages.$inferInsert
+
+export const apiKeys = pgTable('api_keys', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  name: text('name'),
+  keyHash: text('key_hash').notNull().unique(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+})
+
+export type ApiKey = typeof apiKeys.$inferSelect
+export type NewApiKey = typeof apiKeys.$inferInsert
