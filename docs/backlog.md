@@ -19,24 +19,6 @@ and bounded storage growth.
 re-login) and can't scale past a single instance; `prompt_history`/threads grow unbounded
 with no defined cleanup.
 
-## WP-5 — Tenant-scoped, bearer-authenticated MCP
-
-**Description**: require `Authorization: Bearer <token>` on `/mcp` requests, and scope prompt
-exposure to the resolved tenant, closing the current stateless-and-unauthenticated MCP surface.
-The per-user API keys added for the threads/messages REST API (`server/lib/apiKeys.ts`,
-`server/utils/requireTenantSession.ts`'s bearer-token path) are a natural fit for this — `/mcp`
-could accept the same `sao_...` tokens rather than inventing a separate credential, sidestepping
-the `iam` HS256/no-JWKS blocker entirely (see the next item).
-
-**Value**: MCP clients can only read prompts belonging to the tenant they're authorized for,
-instead of any tenant's data being reachable by anyone who can reach `/mcp`.
-
-**Consequence of not doing it**: `/mcp` remains unauthenticated and un-scoped even after the
-rest of the app is tenant-isolated and SSO'd — the biggest structural gap left after phase 1.
-**No longer blocked** on `iam` exposing RS256/JWKS + introspection (see the next item) — the
-per-user API key mechanism doesn't touch `iam` tokens at all, so WP-5 can ship independently of
-that.
-
 ## iam token verification (RS256/JWKS + introspection)
 
 **Description**: `iam` Phase 1 signs with HS256 (shared secret, no JWKS) and exposes no
@@ -45,7 +27,7 @@ signature. Track when `iam` adds RS256/JWKS + introspection so `simple-ai-os` ca
 signatures instead of trusting a decoded-but-unverified token.
 
 **Value**: closes a security gap in the `iam` SSO login path itself (the `id_token` exchanged
-during login) — independent of WP-5 now that WP-5 doesn't need it.
+during login).
 
 **Consequence of not doing it**: `simple-ai-os` continues trusting a decoded-but-unverified
 `id_token` during login, same as it does today.

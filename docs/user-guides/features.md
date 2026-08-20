@@ -13,7 +13,8 @@
 - **Prompt library**: create, edit, delete, and version-compare reusable prompts, exposed to
   the chat UI's prompt picker and over MCP.
 - **MCP server**: `/mcp` exposes the tenant's prompt library as MCP prompts for external MCP
-  clients.
+  clients. Requires authentication (a personal API key or browser session — see "Personal API
+  keys" above), scoped to the resolved tenant.
 - **Multitenancy**: each customer ("tenant") gets an isolated Postgres schema
   (`tenant_<slug>`) — prompts, prompt history, and users are all tenant-scoped. Tenants are
   resolved by subdomain (`{slug}.simple-ai-os.tryyourideas.com`, or `{slug}.localhost:3000` in

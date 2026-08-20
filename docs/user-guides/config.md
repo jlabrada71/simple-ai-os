@@ -68,9 +68,9 @@ longer used.
 
 ## API keys
 
-Any tenant-scoped REST endpoint (`/api/threads/**`, `/api/prompts/**`, `/api/agent`,
-`/api/agent-stream`) accepts a personal API key as an alternative to a browser session cookie —
-useful for scripts or integrations that can't hold a cookie.
+Any tenant-scoped endpoint (`/api/threads/**`, `/api/prompts/**`, `/api/agent`,
+`/api/agent-stream`, and `/mcp`) accepts a personal API key as an alternative to a browser
+session cookie — useful for scripts, integrations, or MCP clients that can't hold a cookie.
 
 - **Create one** (requires an active browser session — a key can't be used to mint another key):
   `POST /api/api-keys` with an optional `{ "name": "..." }` body. The plaintext token

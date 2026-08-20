@@ -2,6 +2,15 @@
 
 Summary of work done, most recent first.
 
+## 2026-08-20 (bearer-authenticated MCP)
+
+- **Tenant-scoped, bearer-authenticated MCP (WP-5)**: `POST /mcp` now requires
+  `requireTenantSession` (the same guard as every other tenant-scoped endpoint) instead of a bare
+  tenant-resolved check — closes the last unauthenticated tenant-data surface. Accepts either a
+  personal API key (`Authorization: Bearer sao_...`, from WP-3's per-user keys) or a browser
+  session cookie; no new auth mechanism. See
+  `docs/superpowers/specs/2026-08-20-mcp-bearer-auth-design.md`.
+
 ## 2026-08-20
 
 - **DB-backed conversation threads + per-user API keys (WP-3)**: replaced the `unstorage` fs
