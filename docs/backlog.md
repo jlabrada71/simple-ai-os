@@ -6,18 +6,21 @@ consequence of leaving it unimplemented. See
 from, and `docs/superpowers/specs/2026-08-19-multitenancy-sso-design.md` for the phase-1
 multitenancy + SSO spec they follow on from.
 
-## WP-4 — Retention, backup, and persistent session store
+## WP-4 — Retention and backup (part 1, persistent session store, is done)
 
-**Description**: define retention policy for `prompt_history`/`threads`, a per-tenant-schema
-backup/restore strategy, and move `nuxt-iam-client`'s `iam:sessions` storage off its
-in-memory default onto Redis or a DB-backed driver.
+**Persistent `iam` session store: done (2026-08-20).** `lib/nuxt-iam-client` now persists
+sessions to its own Postgres table (`iam_client_sessions`) instead of in-memory `useStorage`,
+with zero code changes needed in `home` or `simple-ai-os` — see
+`docs/superpowers/specs/2026-08-20-iam-client-persistent-sessions-design.md`.
 
-**Value**: production-safe session persistence (survives restarts, works with >1 instance)
-and bounded storage growth.
+**Remaining**: define retention policy for `prompt_history`/`threads` (a per-tenant-schema
+backup/restore strategy is the other still-open part of the original WP-4 scope).
 
-**Consequence of not doing it**: `iam` sessions are lost on every restart/deploy (forcing
-re-login) and can't scale past a single instance; `prompt_history`/threads grow unbounded
-with no defined cleanup.
+**Value**: bounded storage growth for `prompt_history`/`threads`, and a documented per-tenant
+backup/restore strategy.
+
+**Consequence of not doing it**: `prompt_history`/`threads` grow unbounded with no defined
+cleanup; no documented recovery path if a tenant's schema is lost.
 
 ## iam token verification (RS256/JWKS + introspection)
 

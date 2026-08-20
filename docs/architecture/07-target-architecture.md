@@ -195,7 +195,7 @@ bookkeeping are proven.
 | `unstorage` fs `session` namespace (chat history) | DB `threads` + `messages` (tenant schema) |
 | `unstorage` fs `assets:sessions` (stub `userId: '123'`, `role: 'admin'`) | **deleted**; identity comes from the `iam` session via `nuxt-iam-client` |
 | `session_id` httpOnly cookie (unauthenticated stub) | `iam_session` httpOnly cookie + server-side session store |
-| `nuxt-iam-client` in-memory `iam:sessions` | mounted to a persistent driver (Redis or DB) for production — see `lib/nuxt-iam-client` "Session storage" |
+| `nuxt-iam-client` in-memory `iam:sessions` | **done**: the library persists sessions to its own Postgres table (`iam_client_sessions`) — see `docs/superpowers/specs/2026-08-20-iam-client-persistent-sessions-design.md` |
 
 ### 3.4 Target application / data matrix
 
@@ -332,7 +332,7 @@ The baseline MCP server is stateless and unauthenticated. Target:
 | T16 | `lib/nuxt-iam-client` | SSO client Nuxt module | `web/lib/nuxt-iam-client` |
 | T17 | `iam` (web/iam) | identity provider | `web/iam` |
 | T18 | Drizzle Kit | migrations per schema (public + tenant) | `home`'s `drizzle.config.*.ts`, `provision-tenant.ts` |
-| T19 | Redis (or DB) | persistent `iam:sessions` + session store | replaces in-memory default |
+| T19 | Postgres (via `lib/nuxt-iam-client`'s own schema) | persistent `iam` session store | replaces the in-memory default — **done** |
 
 ### 5.2 Target platform decomposition
 
@@ -411,8 +411,11 @@ Node.js process (Nuxt/Nitro "simple-ai-os")
 2. **`iam` token asymmetry** — Phase 1 uses HS256 + no JWKS/introspection; confirm when
    `iam` will expose RS256/JWKS + introspection so `simple-ai-os` (and `nuxt-iam-client`)
    can verify signatures rather than decode.
-3. **Session store backend** — Redis vs. DB for `iam:sessions` in production.
-4. **MCP auth mechanism** — bearer `iam` access token vs. a `simple-ai-os`-issued token.
+3. **Session store backend** — **resolved**: Postgres, via `lib/nuxt-iam-client`'s own
+   `iam_client_sessions` table (see `docs/superpowers/specs/2026-08-20-iam-client-persistent-sessions-design.md`).
+4. **MCP auth mechanism** — **resolved**: a `simple-ai-os`-issued per-user API key
+   (`server/lib/apiKeys.ts`, `Authorization: Bearer sao_...`), not an `iam` access token — see
+   `docs/superpowers/specs/2026-08-20-mcp-bearer-auth-design.md`.
 
 ---
 

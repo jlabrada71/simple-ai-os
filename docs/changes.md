@@ -2,6 +2,17 @@
 
 Summary of work done, most recent first.
 
+## 2026-08-20 (persistent iam session storage)
+
+- **Postgres-backed `nuxt-iam-client` session storage (WP-4, part 1)**: `lib/nuxt-iam-client`
+  now persists `iam` sessions to its own `iam_client_sessions` Postgres table instead of
+  Nitro's in-memory `useStorage` default — sessions survive restarts/deploys and can be shared
+  across multiple instances. Zero code changes needed in `simple-ai-os` or `home`; both just
+  need `DATABASE_URL` set (already true). Verified: both apps boot cleanly, the library's own
+  migration runs automatically on first request (deduped across `home`'s two mounts), and a
+  session created before a dev server restart is still resolvable after. See
+  `docs/superpowers/specs/2026-08-20-iam-client-persistent-sessions-design.md`.
+
 ## 2026-08-20 (API key management UI)
 
 - **API key management UI**: new `/api-keys` page (linked from the app nav) lets a user
