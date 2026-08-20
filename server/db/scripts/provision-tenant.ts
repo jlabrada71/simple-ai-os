@@ -1,11 +1,4 @@
-import { drizzle } from 'drizzle-orm/node-postgres'
-import { migrate } from 'drizzle-orm/node-postgres/migrator'
-import { Pool } from 'pg'
-import { tenants } from '../schema/public'
-import { registerTenantIamApp } from '../../utils/tenantIamRegistration'
-import { getTenantIamAppConfig, storeTenantIamAppConfig } from '../../utils/tenantIamConfig'
-
-const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/simple-ai-os'
+import { provisionTenant } from '../../lib/provisionTenant'
 
 function parseArgs(): { slug: string; name: string } {
   const args = process.argv.slice(2)
@@ -27,33 +20,14 @@ function parseArgs(): { slug: string; name: string } {
 
 async function main() {
   const { slug, name } = parseArgs()
-  const schemaName = `tenant_${slug}`
+  const result = await provisionTenant({ slug, name })
 
-  const pool = new Pool({ connectionString, max: 1 })
-  const db = drizzle(pool)
-  await db.insert(tenants).values({ slug, schemaName, companyName: name })
-  await pool.query(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`)
-  await pool.end()
-
-  const tenantPool = new Pool({ connectionString, max: 1, options: `-c search_path=${schemaName},public` })
-  const tenantDb = drizzle(tenantPool)
-  await migrate(tenantDb, {
-    migrationsFolder: './server/db/migrations/tenant',
-    // Each tenant tracks its own applied migrations inside its own schema -
-    // see docs/learnings/learnings.md for why this is required.
-    migrationsSchema: schemaName,
-  })
-
-  const existingIamConfig = await getTenantIamAppConfig(tenantDb, 'simple-ai-os')
-  if (!existingIamConfig) {
-    const registered = await registerTenantIamApp({ appName: name, slug })
-    await storeTenantIamAppConfig(tenantDb, 'simple-ai-os', registered)
-    console.log(`Registered iam app "${registered.appId}" for tenant "${slug}"`)
+  if (result.alreadyExisted) {
+    console.log(`Tenant "${slug}" was already provisioned (schema "${result.schemaName}")`)
+    return
   }
 
-  await tenantPool.end()
-
-  console.log(`Tenant "${slug}" provisioned with schema "${schemaName}"`)
+  console.log(`Tenant "${slug}" provisioned with schema "${result.schemaName}"`)
   console.log('No owner user was seeded - the first person to complete SSO login becomes the tenant owner (role: member; promote to admin manually - see docs/backlog.md).')
 }
 
