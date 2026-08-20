@@ -7,9 +7,9 @@
   cookie — it survives across devices/sessions. `chat-streaming.vue` has a thread list sidebar
   (multiple conversations, switchable, auto-titled from the first message); `chat.vue` always
   continues your most recent thread.
-- **Personal API keys**: any tenant-scoped REST endpoint can be called with
-  `Authorization: Bearer <token>` instead of a browser session, for scripts/integrations — see
-  `docs/user-guides/config.md`.
+- **Personal API keys**: any tenant-scoped endpoint can be called with
+  `Authorization: Bearer <token>` instead of a browser session, for scripts/integrations. Create,
+  view, and revoke keys from the `/api-keys` page — see `docs/user-guides/config.md`.
 - **Prompt library**: create, edit, delete, and version-compare reusable prompts, exposed to
   the chat UI's prompt picker and over MCP.
 - **MCP server**: `/mcp` exposes the tenant's prompt library as MCP prompts for external MCP

@@ -72,16 +72,14 @@ Any tenant-scoped endpoint (`/api/threads/**`, `/api/prompts/**`, `/api/agent`,
 `/api/agent-stream`, and `/mcp`) accepts a personal API key as an alternative to a browser
 session cookie — useful for scripts, integrations, or MCP clients that can't hold a cookie.
 
-- **Create one** (requires an active browser session — a key can't be used to mint another key):
-  `POST /api/api-keys` with an optional `{ "name": "..." }` body. The plaintext token
-  (`sao_...`) is returned exactly once; only its hash is stored.
+- **Create/list/revoke via the UI**: the `/api-keys` page (requires an active browser session)
+  lets you create a named key (the plaintext token is shown once, with a copy button), see your
+  existing keys' name/created/last-used, and revoke any of them.
+- **Or directly**: `POST /api/api-keys` (optional `{ "name": "..." }` body, returns the
+  plaintext token once), `GET /api/api-keys` (never returns the token, only
+  id/name/`createdAt`/`lastUsedAt`), `DELETE /api/api-keys/:id`.
 - **Use one**: send `Authorization: Bearer <token>` on any request instead of relying on the
   session cookie. The key inherits exactly the permissions of the user it belongs to.
-- **List/revoke**: `GET /api/api-keys` (never returns the token, only id/name/`createdAt`/
-  `lastUsedAt`), `DELETE /api/api-keys/:id`.
-
-There's no UI for this yet (see `docs/backlog.md`'s "API key management UI") — these are called
-directly.
 
 ## Local domains
 

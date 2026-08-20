@@ -2,6 +2,14 @@
 
 Summary of work done, most recent first.
 
+## 2026-08-20 (API key management UI)
+
+- **API key management UI**: new `/api-keys` page (linked from the app nav) lets a user
+  create, list, and revoke their own personal API keys — the plaintext token is shown once in a
+  dismissible banner with a copy button, matching the "shown once" contract of
+  `POST /api/api-keys`. No backend change; uses the existing WP-3 endpoints. See
+  `docs/superpowers/specs/2026-08-20-api-key-management-ui-design.md`.
+
 ## 2026-08-20 (bearer-authenticated MCP)
 
 - **Tenant-scoped, bearer-authenticated MCP (WP-5)**: `POST /mcp` now requires

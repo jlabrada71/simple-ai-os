@@ -44,14 +44,3 @@ update. Add an admin UI/endpoint for this (mirroring `home`'s admin patterns).
 has direct Postgres access, which doesn't scale past a handful of tenants and blocks tenants
 from self-managing membership.
 
-## API key management UI
-
-**Description**: `POST/GET/DELETE /api/api-keys` exist but have no frontend — a user who wants a
-personal API key has to call the endpoints directly (e.g. via curl) after logging in through the
-browser once to get a session cookie.
-
-**Value**: a settings page would let users self-serve key creation/rotation/revocation without
-needing to know the raw endpoints.
-
-**Consequence of not doing it**: API keys stay a power-user/integration feature reachable only by
-someone comfortable calling the REST API directly.

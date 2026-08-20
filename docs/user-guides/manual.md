@@ -69,14 +69,15 @@ conversation, and **New Thread** there starts a new one without showing a list.
 
 ## Creating and using a personal API key
 
-For scripts or integrations that need to call the chat/prompts/threads API without a browser:
+For scripts or integrations that need to call the chat/prompts/threads/MCP API without a
+browser:
 
-1. While logged in, call `POST /api/api-keys` (optionally `{ "name": "my script" }`). The
-   response includes the plaintext token (`sao_...`) — copy it now, it's never shown again.
+1. While logged in, visit `/api-keys` and click **Create Key** (a name is optional). The
+   plaintext token (`sao_...`) is shown once in a banner — copy it now, it's never shown again.
+   (Or call `POST /api/api-keys` directly with the same effect.)
 2. Send it as `Authorization: Bearer <token>` on any subsequent request instead of relying on
    your browser session cookie.
-3. Revoke it any time with `DELETE /api/api-keys/:id` (get the id from `GET /api/api-keys`,
-   which never returns the token itself).
+3. Revoke it any time from the `/api-keys` page, or with `DELETE /api/api-keys/:id`.
 
 ```mermaid
 sequenceDiagram
