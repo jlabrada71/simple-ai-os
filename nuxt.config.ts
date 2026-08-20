@@ -54,13 +54,6 @@ export default defineNuxtConfig({
       { baseName: 'migrationsPublic', dir: fileURLToPath(new URL('./server/db/migrations/public', import.meta.url)) },
       { baseName: 'migrationsTenant', dir: fileURLToPath(new URL('./server/db/migrations/tenant', import.meta.url)) },
     ],
-    storage: {
-      // Mount a filesystem driver to /data/db
-      session: {
-        driver: 'fs',
-        base: './data/sessions'
-      }
-    },
     routeRules: {
       '/mcp': { cors: true }
     }
