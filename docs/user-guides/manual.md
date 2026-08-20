@@ -53,3 +53,38 @@ sequenceDiagram
 ## Starting a new conversation
 
 Click **New Thread** in the chat UI to clear the current conversation and start fresh.
+
+## Switching between conversations (`/chat-streaming`)
+
+`/chat-streaming` keeps every past conversation, listed by title (auto-derived from its first
+message) in the left sidebar, newest-first.
+
+1. Click **New Thread** to start a fresh, untitled conversation — it appears in the sidebar as
+   soon as you send its first message.
+2. Click any other entry in the sidebar to switch to it; its full history loads into the chat
+   panel.
+
+`/chat` (the non-streaming page) has no sidebar — it always continues your most recently used
+conversation, and **New Thread** there starts a new one without showing a list.
+
+## Creating and using a personal API key
+
+For scripts or integrations that need to call the chat/prompts/threads API without a browser:
+
+1. While logged in, call `POST /api/api-keys` (optionally `{ "name": "my script" }`). The
+   response includes the plaintext token (`sao_...`) — copy it now, it's never shown again.
+2. Send it as `Authorization: Bearer <token>` on any subsequent request instead of relying on
+   your browser session cookie.
+3. Revoke it any time with `DELETE /api/api-keys/:id` (get the id from `GET /api/api-keys`,
+   which never returns the token itself).
+
+```mermaid
+sequenceDiagram
+    participant Ext as External script
+    participant S as simple-ai-os
+
+    Ext->>S: POST /api/api-keys  (browser session cookie)
+    S-->>Ext: { token: "sao_..." }  (shown once)
+    Ext->>S: GET /api/threads  Authorization: Bearer sao_...
+    S-->>Ext: { threads: [...] }
+```

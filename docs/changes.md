@@ -2,6 +2,31 @@
 
 Summary of work done, most recent first.
 
+## 2026-08-20
+
+- **DB-backed conversation threads + per-user API keys (WP-3)**: replaced the `unstorage` fs
+  `session` namespace with tenant-schema `threads`/`messages` tables
+  (`server/lib/threads.ts`), tied to the authenticated `tenant.users` row instead of a bare
+  `session_id` cookie. `chat-streaming.vue` gained a thread list sidebar (multiple, switchable,
+  auto-titled from the first message) backed by a new `app/composables/useThreads.ts`;
+  `chat.vue` is unaffected visually (its endpoint auto-resolves the caller's latest thread).
+  `GET /api/new-thread` and the `session_id` cookie / `nitro.storage.session` fs driver are
+  removed.
+  - **Per-user API keys**: `server/lib/apiKeys.ts` + `POST/GET/DELETE /api/api-keys` let a user
+    mint a personal-access-token-style key (`sao_...`, shown once, stored only as a SHA-256
+    hash). `server/utils/requireTenantSession.ts` now accepts `Authorization: Bearer <token>`
+    as an alternative to the session cookie on every tenant-scoped endpoint — prompts, agent,
+    agent-stream, and the new threads endpoints all gained this for free, since they all go
+    through the same guard.
+  - **Real bug found and fixed during manual verification**: `drizzle-kit generate` qualifies
+    cross-table foreign keys as `"public"."<table>"` even for tables that only exist via the
+    `search_path` schema-per-tenant trick, breaking every new tenant's migration once a
+    tenant-schema table referenced another one for the first time (`threads`→`users`,
+    `messages`→`threads`, `api_keys`→`users`). Documented in
+    `docs/learnings/learnings.md` since it will recur for any future cross-table FK.
+  - See `docs/superpowers/specs/2026-08-20-db-backed-threads-design.md` and
+    `docs/superpowers/plans/2026-08-20-db-backed-threads.md`.
+
 ## 2026-08-19
 
 - **Cross-app tenant auto-provisioning (phase 2)**: `simple-ai-os` gains an idempotent

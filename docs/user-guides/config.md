@@ -60,6 +60,29 @@ Migrations are Drizzle Kit-generated SQL, split by schema group:
   automatically on first request via `server/plugins/migrate.ts`).
 - Tenant-schema migrations are applied by `db:provision-tenant` at provisioning time.
 
+## Chat history
+
+Conversation history lives in the tenant's own `threads`/`messages` tables (Postgres), keyed to
+the authenticated `tenant.users` row — not a cookie. The old `data/sessions/` fs directory is no
+longer used.
+
+## API keys
+
+Any tenant-scoped REST endpoint (`/api/threads/**`, `/api/prompts/**`, `/api/agent`,
+`/api/agent-stream`) accepts a personal API key as an alternative to a browser session cookie —
+useful for scripts or integrations that can't hold a cookie.
+
+- **Create one** (requires an active browser session — a key can't be used to mint another key):
+  `POST /api/api-keys` with an optional `{ "name": "..." }` body. The plaintext token
+  (`sao_...`) is returned exactly once; only its hash is stored.
+- **Use one**: send `Authorization: Bearer <token>` on any request instead of relying on the
+  session cookie. The key inherits exactly the permissions of the user it belongs to.
+- **List/revoke**: `GET /api/api-keys` (never returns the token, only id/name/`createdAt`/
+  `lastUsedAt`), `DELETE /api/api-keys/:id`.
+
+There's no UI for this yet (see `docs/backlog.md`'s "API key management UI") — these are called
+directly.
+
 ## Local domains
 
 Tenant subdomains resolve via the `*.localhost` convention (no `/etc/hosts` needed) in

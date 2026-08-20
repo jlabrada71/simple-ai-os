@@ -3,6 +3,13 @@
 - **Chat (non-streaming and streaming)**: two parallel implementations of a Claude-backed chat
   UI — `POST /api/agent` (full response) and `POST /api/agent-stream` (token-by-token via a
   `ReadableStream`). Both render assistant responses as markdown.
+- **Conversation threads**: chat history is DB-backed and per-user, not tied to a browser
+  cookie — it survives across devices/sessions. `chat-streaming.vue` has a thread list sidebar
+  (multiple conversations, switchable, auto-titled from the first message); `chat.vue` always
+  continues your most recent thread.
+- **Personal API keys**: any tenant-scoped REST endpoint can be called with
+  `Authorization: Bearer <token>` instead of a browser session, for scripts/integrations — see
+  `docs/user-guides/config.md`.
 - **Prompt library**: create, edit, delete, and version-compare reusable prompts, exposed to
   the chat UI's prompt picker and over MCP.
 - **MCP server**: `/mcp` exposes the tenant's prompt library as MCP prompts for external MCP

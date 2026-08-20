@@ -6,21 +6,6 @@ consequence of leaving it unimplemented. See
 from, and `docs/superpowers/specs/2026-08-19-multitenancy-sso-design.md` for the phase-1
 multitenancy + SSO spec they follow on from.
 
-## WP-3 — DB-backed conversation storage (threads/messages)
-
-**Description**: replace the `unstorage` fs `session` namespace (`{ messages,
-claudeResponse }` blobs keyed by `session_id`) with tenant-schema `threads`/`messages`
-tables tied to `tenant.users`.
-
-**Value**: conversation history becomes queryable, tenant-scoped by construction (not just
-by cookie host-scoping), survives across devices/sessions for the same user, and closes the
-"split-brain" between the fs session store and the DB-backed tenant model.
-
-**Consequence of not doing it**: chat history stays tied to a single browser's cookie rather
-than the authenticated user; it can't be listed, searched, or migrated; and it's the one part
-of the app that isn't actually inside the tenant's Postgres schema despite everything else
-being schema-isolated.
-
 ## WP-4 — Retention, backup, and persistent session store
 
 **Description**: define retention policy for `prompt_history`/`threads`, a per-tenant-schema
@@ -36,17 +21,21 @@ with no defined cleanup.
 
 ## WP-5 — Tenant-scoped, bearer-authenticated MCP
 
-**Description**: require `Authorization: Bearer <iam access token>` (or a derived
-`simple-ai-os`-issued token) on `/mcp` requests, and scope prompt exposure to the resolved
-tenant, closing the current stateless-and-unauthenticated MCP surface.
+**Description**: require `Authorization: Bearer <token>` on `/mcp` requests, and scope prompt
+exposure to the resolved tenant, closing the current stateless-and-unauthenticated MCP surface.
+The per-user API keys added for the threads/messages REST API (`server/lib/apiKeys.ts`,
+`server/utils/requireTenantSession.ts`'s bearer-token path) are a natural fit for this — `/mcp`
+could accept the same `sao_...` tokens rather than inventing a separate credential, sidestepping
+the `iam` HS256/no-JWKS blocker entirely (see the next item).
 
 **Value**: MCP clients can only read prompts belonging to the tenant they're authorized for,
 instead of any tenant's data being reachable by anyone who can reach `/mcp`.
 
 **Consequence of not doing it**: `/mcp` remains unauthenticated and un-scoped even after the
 rest of the app is tenant-isolated and SSO'd — the biggest structural gap left after phase 1.
-Blocked on `iam` exposing RS256/JWKS + introspection (see next item) for anything relying on
-JWT signature verification rather than decode-only trust.
+**No longer blocked** on `iam` exposing RS256/JWKS + introspection (see the next item) — the
+per-user API key mechanism doesn't touch `iam` tokens at all, so WP-5 can ship independently of
+that.
 
 ## iam token verification (RS256/JWKS + introspection)
 
@@ -55,11 +44,11 @@ introspection endpoint; `nuxt-iam-client` decodes the `id_token` without verifyi
 signature. Track when `iam` adds RS256/JWKS + introspection so `simple-ai-os` can verify
 signatures instead of trusting a decoded-but-unverified token.
 
-**Value**: closes a security gap before any bearer-authenticated surface (notably WP-5's MCP)
-trusts a JWT's claims.
+**Value**: closes a security gap in the `iam` SSO login path itself (the `id_token` exchanged
+during login) — independent of WP-5 now that WP-5 doesn't need it.
 
-**Consequence of not doing it**: WP-5 either stays blocked or ships trusting unverified token
-claims, which is not acceptable for a bearer-authenticated API surface.
+**Consequence of not doing it**: `simple-ai-os` continues trusting a decoded-but-unverified
+`id_token` during login, same as it does today.
 
 ## Tenant-admin promotion UI
 
@@ -72,3 +61,15 @@ update. Add an admin UI/endpoint for this (mirroring `home`'s admin patterns).
 **Consequence of not doing it**: every role change requires a manual DB update from whoever
 has direct Postgres access, which doesn't scale past a handful of tenants and blocks tenants
 from self-managing membership.
+
+## API key management UI
+
+**Description**: `POST/GET/DELETE /api/api-keys` exist but have no frontend — a user who wants a
+personal API key has to call the endpoints directly (e.g. via curl) after logging in through the
+browser once to get a session cookie.
+
+**Value**: a settings page would let users self-serve key creation/rotation/revocation without
+needing to know the raw endpoints.
+
+**Consequence of not doing it**: API keys stay a power-user/integration feature reachable only by
+someone comfortable calling the REST API directly.
