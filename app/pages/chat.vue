@@ -87,8 +87,8 @@ const sendMessage = async () => {
 }
 
 const newThread = async() => {
-  const response = await $fetch('/api/new-thread', {
-    method: 'GET',    
+  await $fetch('/api/threads', {
+    method: 'POST',
   })
   userInput.value = ''
   messages.value = [];
