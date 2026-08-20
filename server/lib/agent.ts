@@ -1,58 +1,36 @@
 import { Anthropic } from "@anthropic-ai/sdk";
-import { ContentBlock } from "@anthropic-ai/sdk/resources";
 import type { drizzle } from "drizzle-orm/node-postgres";
 import { agents, getAgent } from './agents';
+import { getThreadMessages, recordExchange } from './threads';
 
 const systemAgent = getAgent(agents, 'orchestrator');
 
 const client = new Anthropic({
-  apiKey: process.env["ANTHROPIC_API_KEY"] // This is the default and can be omitted
+  apiKey: process.env["ANTHROPIC_API_KEY"]
 });
 
-type Message = {
-        role: "user" | "assistant" | "system";
-        content: string| ContentBlock[]
-    };
+type Message = { role: "user" | "assistant"; content: string };
 
-function addUserMessage(messages: Message[], content: string) {
-    messages.push({ role: "user", content });
-}
-
-function addAssistantMessage(messages: Message[], content: string| ContentBlock[]) {
-    messages.push({ role: "assistant", content });
-}
-
-export async function chat(_db: ReturnType<typeof drizzle>, sessionId: string, userMessage: string): Promise<string> {
-    const storage = useStorage('session'); // targets the 'session' mount
-
-    const sessionData = await storage.getItem(sessionId) as { messages: Message[]; claudeResponse: Anthropic.Message[] } || { messages: [] as Message[], claudeResponse: [] as Anthropic.Message[] };
-    const { messages, claudeResponse = [] } = sessionData;
-    // Set data
-
-    addUserMessage(messages, userMessage);
+export async function chat(db: ReturnType<typeof drizzle>, threadId: string, userMessage: string): Promise<string> {
+    const history = await getThreadMessages(db, threadId)
+    const messages: Message[] = history.map((m) => ({ role: m.role, content: m.content }))
+    messages.push({ role: "user", content: userMessage })
 
     const responseMessage = await client.messages.create({
         max_tokens: 10000,
-        messages: messages,
+        messages,
         model: "claude-sonnet-5",
         system: systemAgent.systemPrompt
     });
-    const { content } = responseMessage;
-    claudeResponse.push(responseMessage);
 
-
-    addAssistantMessage(messages, content);
-
-    sessionData.messages = messages;
-    sessionData.claudeResponse = claudeResponse;
-    await storage.setItem(sessionId, sessionData);
-
-    const response = responseMessage.content.map(block => {
+    const responseText = responseMessage.content.map(block => {
         if (block.type === "text") {
             return block.text;
         }
         return '';
     }).join('\n');
-    return response;
 
+    await recordExchange(db, threadId, userMessage, responseText)
+
+    return responseText;
 }
