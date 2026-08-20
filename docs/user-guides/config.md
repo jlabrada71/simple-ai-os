@@ -11,6 +11,7 @@
 | `NUXT_IAM_CLIENT_ID` | Yes (for provisioning) | The `iam` client ID used to register a per-tenant app during `db:provision-tenant`. |
 | `NUXT_IAM_CLIENT_API_SECRET` | Yes (for provisioning) | Bearer secret authenticating that client's app-registration calls to `iam`. |
 | `NUXT_TENANT_SECRET_ENCRYPTION_KEY` | Yes | 64-character hex string (32 bytes) used to encrypt each tenant's `iam` client secret at rest. Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. |
+| `NUXT_ADMIN_API_KEY` | Yes (for cross-app provisioning) | Shared secret authenticating server-to-server calls to `POST /api/admin/tenants` (`x-admin-api-key` header). Must exactly match `home`'s `NUXT_SIMPLE_AI_OS_ADMIN_API_KEY` for that environment. Generate with `openssl rand -hex 32`. |
 
 ## Tenant provisioning
 
@@ -27,6 +28,27 @@ migrations, and registers a `simple-ai-os` app for the tenant in `iam` (storing 
 No owner user is seeded — the first person to complete SSO login for that tenant becomes its
 owner automatically (`role: 'member'`; promoting to `role: 'admin'` is a manual DB update in
 this phase — see `docs/backlog.md`).
+
+### Cross-app provisioning from `home`
+
+`web/home` provisions a matching tenant here automatically whenever it provisions its own tenant
+(see `home/docs/user-guides/config.md`'s "Cross-app tenant provisioning" section) — this CLI
+command and `home`'s call both go through the same underlying `provisionTenant()` function
+(`server/lib/provisionTenant.ts`), so both are idempotent and safe to run more than once for the
+same slug (a repeat call reports `alreadyExisted: true` instead of erroring).
+
+The same logic is also reachable as an HTTP endpoint for that cross-app call:
+
+```bash
+curl -X POST https://simple-ai-os.tryyourideas.com/api/admin/tenants \
+  -H "x-admin-api-key: $NUXT_ADMIN_API_KEY" -H "content-type: application/json" \
+  -d '{"slug":"acme","name":"Acme Co"}'
+```
+
+There's normally no need to call this by hand — `home`'s own admin **Tenants** page triggers it.
+It exists as a manual fallback (e.g. retrying a tenant `home`'s automatic call failed to
+provision here, without re-running `home`'s own provisioning). See
+`docs/architecture/ADR/0006-cross-app-tenant-provisioning-shared-key.md`.
 
 ## Database migrations
 

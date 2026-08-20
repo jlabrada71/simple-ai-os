@@ -10,7 +10,9 @@
 - **Multitenancy**: each customer ("tenant") gets an isolated Postgres schema
   (`tenant_<slug>`) — prompts, prompt history, and users are all tenant-scoped. Tenants are
   resolved by subdomain (`{slug}.simple-ai-os.tryyourideas.com`, or `{slug}.localhost:3000` in
-  dev).
+  dev). A tenant provisioned in `web/home`'s admin gets a matching space here automatically,
+  with no separate manual step (`POST /api/admin/tenants`, key-authenticated — see
+  `docs/user-guides/config.md`).
 - **SSO login via iam**: authentication is delegated to the centralized `iam` service
   (passwordless email-code login, authorization-code redirect flow). A user already logged
   into another `iam`-backed app (e.g. `home`) is signed into simple-ai-os automatically, with

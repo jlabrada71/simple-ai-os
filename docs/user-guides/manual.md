@@ -1,5 +1,13 @@
 # User Manual
 
+## Getting a tenant space
+
+You don't provision a simple-ai-os tenant directly — it's created automatically when an operator
+provisions your company as a tenant in `web/home`'s admin (**Tenants** → **New Tenant**). That
+step also registers this tenant's own `iam` login, so as soon as it's done you can sign in per
+"Logging in" below. If you already had an account in `home`, you don't need to sign in again here
+either — see the next section.
+
 ## Logging in
 
 simple-ai-os delegates authentication to `iam`, the workspace's centralized identity service.
