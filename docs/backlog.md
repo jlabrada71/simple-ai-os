@@ -6,21 +6,6 @@ consequence of leaving it unimplemented. See
 from, and `docs/superpowers/specs/2026-08-19-multitenancy-sso-design.md` for the phase-1
 multitenancy + SSO spec they follow on from.
 
-## Phase 2 — cross-app tenant auto-provisioning (home → simple-ai-os)
-
-**Description**: when a tenant is provisioned in `web/home`
-(`server/api/admin/tenants/index.post.ts`), automatically provision a matching
-`simple-ai-os` tenant (schema + `iam` app registration under `applicationName:
-'simple-ai-os'`) instead of requiring a separate manual step.
-
-**Value**: a tenant created for `home` gets a working `simple-ai-os` space with zero extra
-admin action, and — because `iam`'s `/auth` route reuses an existing browser session across
-apps — a user already logged into `home` lands in `simple-ai-os` already authenticated.
-
-**Consequence of not doing it**: every new tenant needs a second, manual provisioning step
-run directly against `simple-ai-os` (CLI script from phase 1), which is easy to forget and
-leaves a `home` tenant temporarily without a `simple-ai-os` space.
-
 ## WP-3 — DB-backed conversation storage (threads/messages)
 
 **Description**: replace the `unstorage` fs `session` namespace (`{ messages,

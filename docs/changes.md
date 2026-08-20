@@ -4,6 +4,15 @@ Summary of work done, most recent first.
 
 ## 2026-08-19
 
+- **Cross-app tenant auto-provisioning (phase 2)**: `simple-ai-os` gains an idempotent
+  `server/lib/provisionTenant.ts` (shared by the CLI script and a new
+  `POST /api/admin/tenants` endpoint, protected by `requireAdminApiKey` — ported verbatim from
+  `iam`'s pattern) so `web/home`'s own tenant provisioning can trigger it automatically instead
+  of requiring the separate manual CLI step from phase 1. New `NUXT_ADMIN_API_KEY` env var.
+  Recorded as `ADR/0006`. See `docs/superpowers/specs/2026-08-19-cross-app-tenant-provisioning-design.md`
+  and `docs/superpowers/plans/2026-08-19-cross-app-tenant-provisioning.md`. (The `home`-side
+  half of this change is recorded in `web/home/docs/changes.md`.)
+
 - **Multitenancy + iam SSO (phase 1)**: implemented `docs/architecture/07-target-architecture.md`'s
   WP-1 (tenant scaffolding) and WP-2 (SSO), per
   `docs/superpowers/specs/2026-08-19-multitenancy-sso-design.md` and
