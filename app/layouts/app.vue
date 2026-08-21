@@ -25,6 +25,14 @@
           >
             API Keys
           </NuxtLink>
+          <NuxtLink
+            v-if="user?.role === 'admin'"
+            to="/team"
+            class="app-nav-link"
+            :class="{ 'app-nav-link-active': route.path === '/team' }"
+          >
+            Team
+          </NuxtLink>
         </nav>
       </div>
     </header>
@@ -36,6 +44,7 @@
 
 <script setup lang="ts">
 const route = useRoute()
+const { user } = useAuth()
 
 useHead({
   link: [
