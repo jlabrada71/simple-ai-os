@@ -6,21 +6,10 @@ consequence of leaving it unimplemented. See
 from, and `docs/superpowers/specs/2026-08-19-multitenancy-sso-design.md` for the phase-1
 multitenancy + SSO spec they follow on from.
 
-## WP-4 — Retention and backup (part 1, persistent session store, is done)
-
-**Persistent `iam` session store: done (2026-08-20).** `lib/nuxt-iam-client` now persists
-sessions to its own Postgres table (`iam_client_sessions`) instead of in-memory `useStorage`,
-with zero code changes needed in `home` or `simple-ai-os` — see
-`docs/superpowers/specs/2026-08-20-iam-client-persistent-sessions-design.md`.
-
-**Remaining**: define retention policy for `prompt_history`/`threads` (a per-tenant-schema
-backup/restore strategy is the other still-open part of the original WP-4 scope).
-
-**Value**: bounded storage growth for `prompt_history`/`threads`, and a documented per-tenant
-backup/restore strategy.
-
-**Consequence of not doing it**: `prompt_history`/`threads` grow unbounded with no defined
-cleanup; no documented recovery path if a tenant's schema is lost.
+~~## WP-4 — Retention and backup~~ **Moved to `docs/future-work.md` (2026-08-21)** — the
+persistent `iam` session store part is done (see
+`docs/superpowers/specs/2026-08-20-iam-client-persistent-sessions-design.md`); the remaining
+retention-policy/backup-restore scope moved as-is, not currently being picked up.
 
 ~~## iam token verification (RS256/JWKS + introspection)~~ **Moved to `docs/future-work.md`
 (2026-08-21)** — investigation found the original framing overstated the risk (the login

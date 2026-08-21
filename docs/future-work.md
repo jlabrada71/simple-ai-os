@@ -38,6 +38,31 @@ entirely in favor of a live introspection call to `iam` per check.
    token on every verification. No crypto/JWKS client needed, but adds a network round-trip per
    login and makes `iam` a hard runtime dependency for every token check, not just minting.
 
+## WP-4 — Retention and backup for `prompt_history`/`threads`
+
+**Moved from `docs/backlog.md` (2026-08-21)**, no new investigation done — moved as-is because
+it's not being picked up right now, not because the framing was found to be wrong (contrast
+with the `iam` token verification entry above).
+
+**Persistent `iam` session store (the other original WP-4 part) is done** — see
+`docs/superpowers/specs/2026-08-20-iam-client-persistent-sessions-design.md`.
+
+**Description**: `prompt_history` (an append-only audit trail written on every prompt
+update/delete, `server/db/schema/tenant.ts`) and `threads`/`messages` (per-user conversation
+history, `server/lib/threads.ts`) both grow without bound today — no retention policy, no
+archival, no per-tenant-schema backup/restore strategy defined or implemented.
+
+**Value**: bounded storage growth for `prompt_history`/`threads`, and a documented per-tenant
+backup/restore strategy.
+
+**Consequence of not doing it**: `prompt_history`/`threads` keep growing unbounded with no
+defined cleanup; there's no documented recovery path if a tenant's schema is lost.
+
+**Open questions for whoever picks this up**: retention policy shape (time-based vs.
+count-based cap, per-table or uniform), whether `prompt_history` (an audit trail) should ever
+be pruned at all vs. only `threads`/`messages`, and whether backup/restore is a per-tenant
+`pg_dump`-based script or something integrated with the existing migration tooling.
+
 **Why this is here and not in `docs/backlog.md`**: the original backlog item's stated
 motivation didn't survive investigation, and the actual value case is now different —
 enabling THIRD-PARTY services (not just the direct login response recipient) to verify a
