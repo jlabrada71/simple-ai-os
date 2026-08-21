@@ -26,6 +26,9 @@ vi.mock('../utils/tenantIamConfig', () => ({
   getTenantIamAppConfig: vi.fn().mockResolvedValue(null),
   storeTenantIamAppConfig: vi.fn().mockResolvedValue(undefined),
 }))
+vi.mock('../utils/pendingAdminEmail', () => ({
+  setPendingAdminEmail: vi.fn().mockResolvedValue(undefined),
+}))
 
 describe('provisionTenant', () => {
   it('returns alreadyExisted: true without inserting again when the slug is already provisioned', async () => {
@@ -41,5 +44,38 @@ describe('provisionTenant', () => {
 
     expect(result).toEqual({ schemaName: 'tenant_acme', alreadyExisted: true })
     expect(insertMock).not.toHaveBeenCalled()
+  })
+
+  it('stores a pending admin email when provisioning a brand-new tenant with an owner email', async () => {
+    const fakeDb = {
+      select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
+      insert: vi.fn(() => ({ values: vi.fn().mockResolvedValue(undefined) })),
+    }
+    const { drizzle } = await import('drizzle-orm/node-postgres')
+    ;(drizzle as any).mockReturnValue(fakeDb)
+
+    const { provisionTenant } = await import('./provisionTenant')
+    const { setPendingAdminEmail } = await import('../utils/pendingAdminEmail')
+
+    await provisionTenant({ slug: 'acme2', name: 'Acme Two', ownerEmail: 'Owner@Acme.com' })
+
+    expect(setPendingAdminEmail).toHaveBeenCalledWith(fakeDb, 'Owner@Acme.com')
+  })
+
+  it('does not touch pending admin email when ownerEmail is omitted', async () => {
+    const fakeDb = {
+      select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
+      insert: vi.fn(() => ({ values: vi.fn().mockResolvedValue(undefined) })),
+    }
+    const { drizzle } = await import('drizzle-orm/node-postgres')
+    ;(drizzle as any).mockReturnValue(fakeDb)
+
+    const { provisionTenant } = await import('./provisionTenant')
+    const { setPendingAdminEmail } = await import('../utils/pendingAdminEmail')
+    ;(setPendingAdminEmail as any).mockClear()
+
+    await provisionTenant({ slug: 'acme3', name: 'Acme Three' })
+
+    expect(setPendingAdminEmail).not.toHaveBeenCalled()
   })
 })

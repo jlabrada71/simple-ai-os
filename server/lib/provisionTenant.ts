@@ -5,12 +5,14 @@ import { Pool } from 'pg'
 import { tenants } from '../db/schema/public'
 import { registerTenantIamApp } from '../utils/tenantIamRegistration'
 import { getTenantIamAppConfig, storeTenantIamAppConfig } from '../utils/tenantIamConfig'
+import { setPendingAdminEmail } from '../utils/pendingAdminEmail'
 
 const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/simple-ai-os'
 
 export interface ProvisionTenantInput {
   slug: string
   name: string
+  ownerEmail?: string
 }
 
 export interface ProvisionTenantResult {
@@ -18,7 +20,7 @@ export interface ProvisionTenantResult {
   alreadyExisted: boolean
 }
 
-export async function provisionTenant({ slug, name }: ProvisionTenantInput): Promise<ProvisionTenantResult> {
+export async function provisionTenant({ slug, name, ownerEmail }: ProvisionTenantInput): Promise<ProvisionTenantResult> {
   const schemaName = `tenant_${slug}`
 
   const pool = new Pool({ connectionString, max: 1 })
@@ -42,6 +44,10 @@ export async function provisionTenant({ slug, name }: ProvisionTenantInput): Pro
     // see docs/learnings/learnings.md for why this is required.
     migrationsSchema: schemaName,
   })
+
+  if (ownerEmail) {
+    await setPendingAdminEmail(tenantDb, ownerEmail)
+  }
 
   const existingIamConfig = await getTenantIamAppConfig(tenantDb, 'simple-ai-os')
   if (!existingIamConfig) {
