@@ -4,6 +4,7 @@ import type { H3Event } from 'h3'
 import { withTenantDb } from '../db/client'
 import { users, apiKeys, type TenantUser } from '../db/schema/tenant'
 import { sha256Hex } from './hash'
+import { getPendingAdminEmail, clearPendingAdminEmail } from './pendingAdminEmail'
 import type { TenantContext } from './tenant'
 
 export interface TenantSession {
@@ -52,9 +53,15 @@ export async function requireTenantSession(event: H3Event): Promise<TenantSessio
     const [existing] = await db.select().from(users).where(eq(users.iamSub, session.username)).limit(1)
     if (existing) return existing
 
+    const pendingAdminEmail = await getPendingAdminEmail(db)
+    const isPendingAdmin = pendingAdminEmail !== null && pendingAdminEmail === session.email.trim().toLowerCase()
+    if (isPendingAdmin) {
+      await clearPendingAdminEmail(db)
+    }
+
     const [created] = await db
       .insert(users)
-      .values({ iamSub: session.username, email: session.email, role: 'member' })
+      .values({ iamSub: session.username, email: session.email, role: isPendingAdmin ? 'admin' : 'member' })
       .returning()
     return created
   })
