@@ -22,18 +22,11 @@ backup/restore strategy.
 **Consequence of not doing it**: `prompt_history`/`threads` grow unbounded with no defined
 cleanup; no documented recovery path if a tenant's schema is lost.
 
-## iam token verification (RS256/JWKS + introspection)
-
-**Description**: `iam` Phase 1 signs with HS256 (shared secret, no JWKS) and exposes no
-introspection endpoint; `nuxt-iam-client` decodes the `id_token` without verifying its
-signature. Track when `iam` adds RS256/JWKS + introspection so `simple-ai-os` can verify
-signatures instead of trusting a decoded-but-unverified token.
-
-**Value**: closes a security gap in the `iam` SSO login path itself (the `id_token` exchanged
-during login).
-
-**Consequence of not doing it**: `simple-ai-os` continues trusting a decoded-but-unverified
-`id_token` during login, same as it does today.
+~~## iam token verification (RS256/JWKS + introspection)~~ **Moved to `docs/future-work.md`
+(2026-08-21)** — investigation found the original framing overstated the risk (the login
+exchange isn't actually vulnerable the way it looked), and the real motivation/mechanism
+choice needs its own scoped brainstorming when a concrete need for third-party token
+verification actually materializes. See `docs/future-work.md` for the full writeup.
 
 ## Tenant-admin promotion UI
 
