@@ -18,16 +18,21 @@
 Each tenant is a Postgres schema (`tenant_<slug>`) plus its own `iam` app registration. Provision one with:
 
 ```bash
-npm run db:provision-tenant -- --slug acme --name "Acme Co"
+npm run db:provision-tenant -- --slug acme --name "Acme Co" --owner-email owner@acme.com
 ```
 
 This creates the `public.tenants` registry row, the `tenant_acme` schema, runs that schema's
 migrations, and registers a `simple-ai-os` app for the tenant in `iam` (storing the returned
 `app_id`/`client_secret` encrypted in that tenant's `tenant_config` table).
 
-No owner user is seeded — the first person to complete SSO login for that tenant becomes its
-owner automatically (`role: 'member'`; promoting to `role: 'admin'` is a manual DB update in
-this phase — see `docs/backlog.md`).
+`--owner-email` is optional but recommended: when given, it's stored as a one-shot
+`pending_admin_email` marker in `tenant_config`, and whoever completes SSO login with that
+email is automatically promoted to `role: 'admin'` on their first login (see
+`docs/architecture/ADR/0007-tenant-admin-bootstrap-via-pending-email-marker.md`). Without it, no
+owner is seeded — the first person to log in becomes a plain `member`, and someone must be
+promoted to admin later via the `/team` page (which requires an existing admin) or a manual DB
+update. Admins can manage member roles at `/team` (`GET`/`PATCH /api/team`), which blocks
+demoting the last remaining admin — see `docs/backlog.md`.
 
 ### Cross-app provisioning from `home`
 
@@ -42,7 +47,7 @@ The same logic is also reachable as an HTTP endpoint for that cross-app call:
 ```bash
 curl -X POST https://simple-ai-os.tryyourideas.com/api/admin/tenants \
   -H "x-admin-api-key: $NUXT_ADMIN_API_KEY" -H "content-type: application/json" \
-  -d '{"slug":"acme","name":"Acme Co"}'
+  -d '{"slug":"acme","name":"Acme Co","ownerEmail":"owner@acme.com"}'
 ```
 
 There's normally no need to call this by hand — `home`'s own admin **Tenants** page triggers it.
