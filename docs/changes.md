@@ -2,6 +2,13 @@
 
 Summary of work done, most recent first.
 
+## 2026-08-21 (bounded tenant connection pool)
+
+- **Capped `getTenantDb`'s per-tenant connection pool cache at 20 entries with LRU eviction**
+  (`server/db/client.ts`), and reduced each pool's own `max` connections from the driver
+  default (10) to 3. Previously unbounded, mirroring the same bug found and fixed in `home`.
+  See `docs/superpowers/specs/2026-08-21-bounded-tenant-connection-pool-design.md`.
+
 ## 2026-08-21 (tenant-admin promotion UI)
 
 - **Tenant-admin promotion UI**: `tenant.users.role` is now load-bearing. `home` forwards the
