@@ -2,6 +2,16 @@
 
 Summary of work done, most recent first.
 
+## 2026-08-21 (tenant-admin promotion UI)
+
+- **Tenant-admin promotion UI**: `tenant.users.role` is now load-bearing. `home` forwards the
+  tenant owner's email through cross-app provisioning; `simple-ai-os` seeds them as the
+  tenant's first admin on their first SSO login via a one-shot `pending_admin_email` marker
+  in `tenant_config` (no schema change). Admins manage the team from a new `/team` page
+  (`GET`/`PATCH /api/team`, admin-only), which blocks demoting the last remaining admin. See
+  `docs/superpowers/specs/2026-08-20-tenant-admin-promotion-ui-design.md` and
+  `docs/architecture/ADR/0007-tenant-admin-bootstrap-via-pending-email-marker.md`.
+
 ## 2026-08-20 (persistent iam session storage)
 
 - **Postgres-backed `nuxt-iam-client` session storage (WP-4, part 1)**: `lib/nuxt-iam-client`

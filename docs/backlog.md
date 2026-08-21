@@ -37,13 +37,13 @@ during login).
 
 ## Tenant-admin promotion UI
 
-**Description**: phase 1 creates a `tenant.users` row with `role: 'member'` for whoever
-completes SSO login first; promoting a member to `role: 'admin'` is a manual direct-DB
-update. Add an admin UI/endpoint for this (mirroring `home`'s admin patterns).
+**Done (2026-08-21).** `home` forwards the tenant owner's email through provisioning;
+`simple-ai-os` seeds them as the tenant's first admin via a one-shot `pending_admin_email`
+marker in `tenant_config`, claimed on their first SSO login. Admins manage roles from the new
+`/team` page (`GET`/`PATCH /api/team`), which blocks demoting the last remaining admin. See
+`docs/superpowers/specs/2026-08-20-tenant-admin-promotion-ui-design.md` and
+`docs/architecture/ADR/0007-tenant-admin-bootstrap-via-pending-email-marker.md`.
 
-**Value**: tenant owners can manage their own team's roles without operator involvement.
-
-**Consequence of not doing it**: every role change requires a manual DB update from whoever
-has direct Postgres access, which doesn't scale past a handful of tenants and blocks tenants
-from self-managing membership.
+**Remaining gap** (unchanged, accepted): a tenant provisioned without an owner email (CLI
+script, backfill script) still has zero admins until one is promoted manually via SQL.
 

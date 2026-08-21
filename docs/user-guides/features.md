@@ -25,3 +25,8 @@
   (passwordless email-code login, authorization-code redirect flow). A user already logged
   into another `iam`-backed app (e.g. `home`) is signed into simple-ai-os automatically, with
   no extra login step, since `iam` reuses its existing browser session across apps.
+- **Team management**: every tenant has admins and members. The person who registered the
+  tenant in `web/home` automatically becomes the tenant's first admin on their first login here
+  — no manual setup. Admins manage the rest of the team from `/team`: view everyone's role and
+  promote/demote members and admins. A tenant always keeps at least one admin — demoting the
+  last remaining one is blocked.

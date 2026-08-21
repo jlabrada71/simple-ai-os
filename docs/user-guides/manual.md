@@ -43,7 +43,7 @@ sequenceDiagram
         end
         U->>S: GET /authenticated?code=...&state=...
         S->>S: validate state, exchange code, validate id_token
-        S->>S: resolve or create the tenant user (first login = owner)
+        S->>S: resolve or create the tenant user (owner's first login = admin, see below)
         S-->>U: 302 /chat (signed in)
     else valid session
         S-->>U: 200 /chat
@@ -66,6 +66,20 @@ message) in the left sidebar, newest-first.
 
 `/chat` (the non-streaming page) has no sidebar — it always continues your most recently used
 conversation, and **New Thread** there starts a new one without showing a list.
+
+## Managing the team (admins only)
+
+The person who registered your company as a tenant in `web/home` automatically becomes this
+tenant's first admin the first time they log in here — no setup step needed. From there:
+
+1. Visit `/team` (only visible in the nav bar to admins).
+2. See every team member's email, role, and join date.
+3. Click **Promote to admin** or **Demote to member** next to any row to change that person's
+   role.
+4. A tenant always keeps at least one admin — the demote button is disabled (with a tooltip
+   explaining why) on the sole remaining admin.
+
+A non-admin visiting `/team` directly sees an "Admins only" message instead of the team list.
 
 ## Creating and using a personal API key
 
