@@ -4,6 +4,7 @@ import { provisionTenant } from '../../../lib/provisionTenant'
 interface ProvisionRequestBody {
   slug?: string
   name?: string
+  ownerEmail?: string
 }
 
 const SLUG_REGEX = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/
@@ -12,7 +13,7 @@ export default defineEventHandler(async (event) => {
   requireAdminApiKey(event)
 
   const body = await readBody<ProvisionRequestBody>(event)
-  const { slug, name } = body ?? {}
+  const { slug, name, ownerEmail } = body ?? {}
 
   if (!slug || !name) {
     throw createError({ statusCode: 400, statusMessage: 'slug and name are required' })
@@ -21,7 +22,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Slug must be lowercase letters, numbers, and hyphens only' })
   }
 
-  const result = await provisionTenant({ slug, name })
+  const result = await provisionTenant({ slug, name, ownerEmail })
 
   return { success: true, slug, schemaName: result.schemaName, alreadyExisted: result.alreadyExisted }
 })
