@@ -1,67 +1,83 @@
 <template>
   <div class="chat-page">
-    <div class="chat-panel">
-      <div class="chat-panel-header">
-        <h1 class="chat-title">Claude Chat</h1>
-        <button type="button" class="btn btn-secondary" @click="newThread">New Thread</button>
-      </div>
+    <div class="chat-layout">
+      <aside class="thread-sidebar">
+        <button type="button" class="btn btn-secondary thread-sidebar-new" @click="newThread">New Thread</button>
+        <ul class="thread-list">
+          <li
+            v-for="thread in threads"
+            :key="thread.id"
+            class="thread-list-item"
+            :class="{ 'thread-list-item-active': thread.id === activeThreadId }"
+            @click="switchThread(thread.id)"
+          >
+            <span class="thread-list-title">{{ thread.title || 'New conversation' }}</span>
+          </li>
+        </ul>
+      </aside>
 
-      <div class="chat-messages" ref="chat-area">
-        <div
-          v-for="(message, index) in messages"
-          :key="index"
-          class="message-row"
-          :class="message.role === 'user' ? 'message-row-user' : 'message-row-assistant'"
-        >
-          <Icon v-if="message.role !== 'user'" name="material-symbols:smart-toy" class="message-avatar" />
-          <div class="bubble" :class="message.role === 'user' ? 'bubble-user' : 'bubble-assistant'">
-            <div v-if="message.role === 'user'">{{ message.content }}</div>
-            <MDC v-else :value="message.content" :cache-key="`chat-streaming-message-${index}`" />
+      <div class="chat-panel">
+        <div class="chat-panel-header">
+          <h1 class="chat-title">Claude Chat</h1>
+        </div>
+
+        <div class="chat-messages" ref="chat-area">
+          <div
+            v-for="(message, index) in messages"
+            :key="index"
+            class="message-row"
+            :class="message.role === 'user' ? 'message-row-user' : 'message-row-assistant'"
+          >
+            <Icon v-if="message.role !== 'user'" name="material-symbols:smart-toy" class="message-avatar" />
+            <div class="bubble" :class="message.role === 'user' ? 'bubble-user' : 'bubble-assistant'">
+              <div v-if="message.role === 'user'">{{ message.content }}</div>
+              <MDC v-else :value="message.content" :cache-key="`chat-streaming-message-${index}`" />
+            </div>
           </div>
         </div>
-      </div>
 
-      <form @submit.prevent="sendMessage" class="chat-form">
-        <div class="mode-switch">
-          <button
-            type="button"
-            class="mode-switch-option"
-            :class="{ 'mode-switch-option-active': mode === 'text' }"
-            @click="mode = 'text'; onModeChange()"
-          >
-            Free text
-          </button>
-          <button
-            v-for="prompt in availablePrompts"
-            :key="prompt.name"
-            type="button"
-            class="mode-switch-option"
-            :class="{ 'mode-switch-option-active': mode === prompt.name }"
-            @click="mode = prompt.name; onModeChange()"
-          >
-            {{ prompt.name }}
-          </button>
-        </div>
-
-        <div class="chat-input-row">
-          <textarea
-            v-if="mode === 'text'"
-            v-model="userInput"
-            placeholder="Type your message..."
-            rows="3"
-            class="chat-textarea"
-          ></textarea>
-          <div v-else class="prompt-params">
-            <label v-for="arg in (selectedPrompt?.arguments || [])" :key="arg.name" class="field-label">
-              <span>{{ arg.name }}</span>
-              <input v-model="promptParams[arg.name]" type="text" class="field-input" />
-            </label>
+        <form @submit.prevent="sendMessage" class="chat-form">
+          <div class="mode-switch">
+            <button
+              type="button"
+              class="mode-switch-option"
+              :class="{ 'mode-switch-option-active': mode === 'text' }"
+              @click="mode = 'text'; onModeChange()"
+            >
+              Free text
+            </button>
+            <button
+              v-for="prompt in availablePrompts"
+              :key="prompt.name"
+              type="button"
+              class="mode-switch-option"
+              :class="{ 'mode-switch-option-active': mode === prompt.name }"
+              @click="mode = prompt.name; onModeChange()"
+            >
+              {{ prompt.name }}
+            </button>
           </div>
-          <button type="submit" class="send-button" aria-label="Send message">
-            <Icon name="material-symbols:send" />
-          </button>
-        </div>
-      </form>
+
+          <div class="chat-input-row">
+            <textarea
+              v-if="mode === 'text'"
+              v-model="userInput"
+              placeholder="Type your message..."
+              rows="3"
+              class="chat-textarea"
+            ></textarea>
+            <div v-else class="prompt-params">
+              <label v-for="arg in (selectedPrompt?.arguments || [])" :key="arg.name" class="field-label">
+                <span>{{ arg.name }}</span>
+                <input v-model="promptParams[arg.name]" type="text" class="field-input" />
+              </label>
+            </div>
+            <button type="submit" class="send-button" aria-label="Send message">
+              <Icon name="material-symbols:send" />
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </template>
@@ -71,7 +87,9 @@ import { ref, computed, onMounted } from 'vue'
 import { streamingFetch } from '../lib/streaming';
 import { listMcpPrompts } from '../lib/mcp-client';
 
-definePageMeta({ layout: 'app' })
+definePageMeta({ layout: 'app', middleware: 'auth' })
+
+const { threads, activeThreadId, refreshThreads, ensureActiveThread, selectThread, startNewThread } = useThreads()
 
 const userInput = ref('');
 const messages = ref([]);
@@ -92,6 +110,12 @@ onMounted(async () => {
     availablePrompts.value = await listMcpPrompts();
   } catch (error) {
     console.error('Failed to load prompts:', error);
+  }
+
+  await refreshThreads();
+  if (threads.value.length > 0) {
+    messages.value = await selectThread(threads.value[0].id);
+    scrollToBottom();
   }
 });
 
@@ -132,6 +156,9 @@ const sendMessage = async () => {
     bubbleContent = buildPromptBubbleContent(mode.value, promptParams.value);
   }
 
+  const threadId = await ensureActiveThread();
+  request.threadId = threadId;
+
   addMessage({ role: 'user', content: bubbleContent });
   messages.value.push(currentAssistantMessage.value);
 
@@ -145,14 +172,21 @@ const sendMessage = async () => {
   userInput.value = '';
   mode.value = 'text';
   promptParams.value = {};
+
+  await refreshThreads();
 }
 
-const newThread = async() => {
-  const response = await $fetch('/api/new-thread', {
-    method: 'GET',
-  })
-  userInput.value = ''
+const newThread = () => {
+  startNewThread();
+  userInput.value = '';
   messages.value = [];
+}
+
+const switchThread = async (id) => {
+  if (id === activeThreadId.value) return
+  messages.value = await selectThread(id);
+  userInput.value = '';
+  scrollToBottom();
 }
 </script>
 
@@ -168,11 +202,68 @@ const newThread = async() => {
   }
 }
 
-.chat-panel {
+.chat-layout {
   display: flex;
-  flex-direction: column;
+  gap: var(--space-md);
   height: calc(100vh - 160px);
   min-height: 480px;
+}
+
+.thread-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-outline-variant);
+  background-color: var(--color-surface-lowest);
+  padding: var(--space-sm);
+  overflow-y: auto;
+}
+
+.thread-sidebar-new {
+  width: 100%;
+  justify-content: center;
+}
+
+.thread-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.thread-list-item {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.thread-list-item:hover {
+  background-color: var(--color-surface-container-low);
+}
+.thread-list-item-active {
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary);
+}
+
+.thread-list-title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   border-radius: var(--radius-xl);
   border: 1px solid var(--color-outline-variant);
   background-color: var(--color-surface-lowest);

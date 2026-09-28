@@ -1,4 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { fileURLToPath } from 'node:url'
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineNuxtConfig({
@@ -11,6 +12,7 @@ export default defineNuxtConfig({
     ],
     optimizeDeps: {
       include: [
+        '@donedeal0/superdiff',
         '@modelcontextprotocol/sdk/client/index.js',
         '@modelcontextprotocol/sdk/client/streamableHttp.js',
         '@vue/devtools-core',
@@ -26,6 +28,16 @@ export default defineNuxtConfig({
     '@nuxt/test-utils',
     '@nuxtjs/i18n',
     '@nuxtjs/mdc',
+    ['nuxt-iam-client', {
+      instanceId: 'tenant',
+      dynamic: true,
+      routePrefix: '/api/auth/iam',
+      composableAlias: 'useTenantAuth',
+      authenticatedPath: '/authenticated',
+      afterLoginPath: '/chat',
+      notAuthenticatedPath: '/not-authenticated',
+      afterLogoutPath: '/',
+    }],
   ],
   mdc: {
     components: {
@@ -38,13 +50,10 @@ export default defineNuxtConfig({
   }
   ],  
   nitro: {
-    storage: {
-      // Mount a filesystem driver to /data/db
-      session: {
-        driver: 'fs',
-        base: './data/sessions'
-      }
-    },
+    serverAssets: [
+      { baseName: 'migrationsPublic', dir: fileURLToPath(new URL('./server/db/migrations/public', import.meta.url)) },
+      { baseName: 'migrationsTenant', dir: fileURLToPath(new URL('./server/db/migrations/tenant', import.meta.url)) },
+    ],
     routeRules: {
       '/mcp': { cors: true }
     }

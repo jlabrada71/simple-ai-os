@@ -1,33 +1,23 @@
 import { Anthropic } from "@anthropic-ai/sdk";
-import { ContentBlock } from "@anthropic-ai/sdk/resources";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import type { drizzle } from "drizzle-orm/node-postgres";
 import { createMcpServer } from "../mcp/server";
 import { type ChatRequest } from "../../shared/types/chat";
 import { agents, getAgent } from './agents';
+import { getThreadMessages, recordExchange } from './threads';
 
 const systemAgent = getAgent(agents, 'orchestrator');
 
 const client = new Anthropic({
-  apiKey: process.env["ANTHROPIC_API_KEY"] // This is the default and can be omitted
+    baseURL: process.env['AGENT_BASE_URL'],
+    apiKey: process.env["ANTHROPIC_API_KEY"]
 });
 
+type Message = { role: "user" | "assistant"; content: string };
 
-type Message = { 
-        role: "user" | "assistant" | "system"; 
-        content: string| ContentBlock[] 
-    };
-
-function addUserMessage(messages: Message[], content: string) {
-    messages.push({ role: "user", content });
-}
-
-function addAssistantMessage(messages: Message[], content: string| ContentBlock[]) {
-    messages.push({ role: "assistant", content });
-}
-
-async function resolvePromptText(name: string, parameters?: Record<string, string>): Promise<string> {
-    const server = await createMcpServer();
+async function resolvePromptText(db: ReturnType<typeof drizzle>, name: string, parameters?: Record<string, string>): Promise<string> {
+    const server = await createMcpServer(db);
     const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
     const client = new Client({ name: "agent-streaming", version: "1.0.0" });
 
@@ -47,67 +37,42 @@ async function resolvePromptText(name: string, parameters?: Record<string, strin
     return text;
 }
 
-export function chat(sessionId: string, request: ChatRequest): ReadableStream<string> {
-
+export function chat(db: ReturnType<typeof drizzle>, threadId: string, request: ChatRequest): ReadableStream<string> {
     const stream = new ReadableStream({
         async start(controller) {
             const encoder = new TextEncoder();
             let content = '';
 
-            const storage = useStorage('session'); // targets the 'session' mount
-
-            const sessionData = await storage.getItem(sessionId) as { messages: Message[]; claudeResponse: Anthropic.Message[] } || { messages: [] as Message[], claudeResponse: [] as Anthropic.Message[] };
-            const { messages, claudeResponse = [] } = sessionData;
-            // Set data
+            const history = await getThreadMessages(db, threadId)
+            const messages: Message[] = history.map((m) => ({ role: m.role, content: m.content }))
 
             const userMessageText = request.type === "text"
                 ? request.text
-                : await resolvePromptText(request.name, request.parameters);
+                : await resolvePromptText(db, request.name, request.parameters);
 
-            addUserMessage(messages, userMessageText);
+            messages.push({ role: "user", content: userMessageText })
 
             const claudeStream = await client.messages.create({
-                max_tokens: 1024,
-                messages: messages,
+                max_tokens: 10000,
+                messages,
                 model: "claude-sonnet-5",
                 system: systemAgent.systemPrompt,
                 stream: true,
             });
             for await (const messageStreamEvent of claudeStream) {
-                console.log(`=============================================`);
-                console.log(messageStreamEvent.type);
-                // console.log(JSON.stringify(messageStreamEvent, null, 2));
-                if(messageStreamEvent.type === "content_block_delta") {
-                    if(messageStreamEvent.delta.type === "text_delta") {
+                if (messageStreamEvent.type === "content_block_delta") {
+                    if (messageStreamEvent.delta.type === "text_delta") {
                         const textChunk = messageStreamEvent.delta.text;
                         content += textChunk;
-                        console.log(`Received text chunk: ${textChunk}`);
-                        const encodedChunk = encoder.encode(textChunk);
-                        controller.enqueue(encodedChunk);
+                        controller.enqueue(encoder.encode(textChunk));
                     }
                 }
-
-                // push the text content to the stream if it's a text block
             }
-            // If you need to cancel a stream, you can break from the loop 
-            // or call stream.controller.abort()
 
-            // collect the claude response to push to 
-            // claudeResponse.push(responseMessage);
+            await recordExchange(db, threadId, userMessageText, content)
 
-            // collect the assistant message to push to messages
-            addAssistantMessage(messages, content);
-
-            sessionData.messages = messages;
-            sessionData.claudeResponse = claudeResponse;
-            await storage.setItem(sessionId, sessionData);
-
-            console.log(`+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++`);
-        
             controller.close();
         }
     });
-    console.log('Returning the ReadableStream from chat function');
     return stream;
-
 }

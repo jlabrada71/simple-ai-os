@@ -1,11 +1,14 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     env_file:
       - .env
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      # postgres:18+ images store data in a pg_ctlcluster-style layout and
+      # expect the volume mounted at the parent directory, not .../data
+      # directly (see docs/learnings/learnings.md in web/home for the
+      # startup error this avoids).
+      - pgdata:/var/lib/postgresql
     ports:
       - "5433:5432"
 

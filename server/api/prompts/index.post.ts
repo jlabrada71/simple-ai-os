@@ -1,10 +1,13 @@
 import { ZodError } from 'zod'
+import { withTenantDb } from '../../db/client'
+import { requireTenantSession } from '../../utils/requireTenantSession'
 import { createPrompt, isUniqueViolation } from '../../lib/prompts'
 
 export default defineEventHandler(async (event) => {
+  const { tenant } = await requireTenantSession(event)
   const body = await readBody(event)
   try {
-    const prompt = await createPrompt(body)
+    const prompt = await withTenantDb(tenant.schemaName, (db) => createPrompt(db, body))
     setResponseStatus(event, 201)
     return prompt
   } catch (err) {

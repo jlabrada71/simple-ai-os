@@ -60,7 +60,7 @@
         </label>
 
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="submit" class="btn btn-primary" :disabled="!isDirty">Save</button>
           <NuxtLink to="/prompts" class="btn btn-secondary">Cancel</NuxtLink>
         </div>
       </form>
@@ -220,6 +220,19 @@ const errorMessage = ref('')
 const notFound = ref(false)
 const isImproving = ref(false)
 
+const savedSnapshot = ref(null)
+
+const isDirty = computed(() => {
+  if (!savedSnapshot.value) return false
+  return (
+    name.value !== savedSnapshot.value.name ||
+    content.value !== savedSnapshot.value.content ||
+    description.value !== savedSnapshot.value.description ||
+    tags.value !== savedSnapshot.value.tags ||
+    variables.value !== savedSnapshot.value.variables
+  )
+})
+
 const showCompare = ref(false)
 const historyEntries = ref([])
 const historyLoaded = ref(false)
@@ -278,6 +291,13 @@ const load = async () => {
     tags.value = prompt.tags.join(', ')
     variables.value = prompt.variables.join(', ')
     version.value = prompt.version
+    savedSnapshot.value = {
+      name: name.value,
+      content: content.value,
+      description: description.value,
+      tags: tags.value,
+      variables: variables.value,
+    }
   } catch (err) {
     if (err.statusCode === 404) {
       notFound.value = true
@@ -445,6 +465,10 @@ load()
   cursor: pointer;
   border: none;
   text-decoration: none;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 .btn-primary {
   background-color: var(--color-primary-container);

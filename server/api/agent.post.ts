@@ -1,16 +1,16 @@
-import { chat } from '../lib/agent';
-import { initSession } from '../lib/session';
+import { withTenantDb } from '../db/client'
+import { requireTenantSession } from '../utils/requireTenantSession'
+import { chat } from '../lib/agent'
+import { getOrCreateLatestThread } from '../lib/threads'
 
 export default defineEventHandler(async (event) => {
-    const body = await readBody(event)    
+    const body = await readBody(event)
+    const { tenant, user } = await requireTenantSession(event)
 
-    const sessionId = getCookie(event, 'session_id') || (await initSession(event)).sessionId;
-    console.log(`Session ID: ${sessionId}`);
-    if (!sessionId) {
-        return { error: 'No valid session found' }
-    }
+    const response = await withTenantDb(tenant.schemaName, async (db) => {
+        const thread = await getOrCreateLatestThread(db, user.id)
+        return chat(db, thread.id, body.value)
+    })
 
-    const response = await chat(sessionId, body.value);    
-
-    return response;
+    return response
 })

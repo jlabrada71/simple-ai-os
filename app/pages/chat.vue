@@ -40,6 +40,8 @@
 <script setup>
 import { ref } from 'vue'
 
+definePageMeta({ middleware: 'auth' })
+
 const userInput = ref('');
 const messages = ref([]);
 const chatAreaElement = useTemplateRef('chat-area');
@@ -85,8 +87,8 @@ const sendMessage = async () => {
 }
 
 const newThread = async() => {
-  const response = await $fetch('/api/new-thread', {
-    method: 'GET',    
+  await $fetch('/api/threads', {
+    method: 'POST',
   })
   userInput.value = ''
   messages.value = [];

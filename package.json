@@ -9,7 +9,12 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e-api": "vitest run --config vitest.e2e-api.config.ts",
+    "db:generate:public": "drizzle-kit generate --config drizzle.config.public.ts",
+    "db:generate:tenant": "drizzle-kit generate --config drizzle.config.tenant.ts",
+    "db:migrate": "tsx server/db/scripts/migrate-public.ts",
+    "db:provision-tenant": "tsx server/db/scripts/provision-tenant.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
@@ -26,6 +31,7 @@
     "drizzle-orm": "^0.45.2",
     "eslint": "^10.6.0",
     "nuxt": "^4.4.8",
+    "nuxt-iam-client": "file:../lib/nuxt-iam-client",
     "pg": "^8.22.0",
     "tailwindcss": "^4.3.2",
     "unstorage": "^1.17.5",
@@ -36,6 +42,8 @@
   "devDependencies": {
     "@playwright/test": "^1.61.1",
     "@types/pg": "^8.20.0",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.23.12",
     "typescript": "^6.0.3",
     "vitest": "^4.1.10"
   },
