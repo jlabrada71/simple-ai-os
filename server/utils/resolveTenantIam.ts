@@ -16,6 +16,6 @@ export async function resolveIamAppCredentials(event: H3Event) {
   return {
     url: process.env.NUXT_IAM_URL || '',
     appId: config.appId,
-    clientSecret: config.clientSecret,
+    appSecret: config.clientSecret,
   }
 }

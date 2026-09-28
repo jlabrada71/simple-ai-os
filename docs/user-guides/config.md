@@ -8,7 +8,7 @@
 | `AGENT_BASE_URL` | No | Overrides the Anthropic client's base URL (streaming client only) — points at a local Anthropic-API-shaped service instead of the real API. |
 | `DATABASE_URL` | Yes | Postgres connection string, e.g. `postgres://user:pass@host:5432/simple-ai-os`. |
 | `NUXT_IAM_URL` | Yes (for SSO) | Base URL of the `iam` instance (e.g. `https://iam.tryyourideas.com`). |
-| `NUXT_IAM_CLIENT_ID` | Yes (for provisioning) | The `iam` client ID used to register a per-tenant app during `db:provision-tenant`. |
+| `NUXT_IAM_CLIENT_API_ID` | Yes (for provisioning) | The `iam` client ID used to register a per-tenant app during `db:provision-tenant`. |
 | `NUXT_IAM_CLIENT_API_SECRET` | Yes (for provisioning) | Bearer secret authenticating that client's app-registration calls to `iam`. |
 | `NUXT_TENANT_SECRET_ENCRYPTION_KEY` | Yes | 64-character hex string (32 bytes) used to encrypt each tenant's `iam` client secret at rest. Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. |
 | `NUXT_ADMIN_API_KEY` | Yes (for cross-app provisioning) | Shared secret authenticating server-to-server calls to `POST /api/admin/tenants` (`x-admin-api-key` header). Must exactly match `home`'s `NUXT_SIMPLE_AI_OS_ADMIN_API_KEY` for that environment. Generate with `openssl rand -hex 32`. |

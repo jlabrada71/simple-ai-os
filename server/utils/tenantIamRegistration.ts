@@ -17,7 +17,7 @@ function tenantOrigin(slug: string): string {
 
 export async function registerTenantIamApp(input: RegisterTenantIamAppInput): Promise<RegisteredTenantIamApp> {
   const iamUrl = (process.env.NUXT_IAM_URL || '').replace(/\/+$/, '')
-  const clientId = process.env.NUXT_IAM_CLIENT_ID || ''
+  const clientId = process.env.NUXT_IAM_CLIENT_API_ID || ''
   const clientApiSecret = process.env.NUXT_IAM_CLIENT_API_SECRET || ''
 
   const origin = tenantOrigin(input.slug)
